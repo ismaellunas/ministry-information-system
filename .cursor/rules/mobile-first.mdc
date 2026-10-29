@@ -1,0 +1,16 @@
+---
+description: Mobile-first UI is a hard requirement for every screen
+alwaysApply: true
+---
+
+# Mobile-first
+
+Hard requirement. See blueprint §10.1. Build the phone layout first.
+
+- Unprefixed Tailwind classes are the phone layout. Use `sm:`, `md:`, and `lg:` only to add space, columns, or a sidebar.
+- Do not build the phone layout with `max-*` overrides of a desktop layout.
+- One column on a phone. A second column starts at `md`.
+- Primary actions stay in thumb reach. Tap targets are at least 44px. Do not require hover.
+- Phone shell uses bottom tabs (Home, Calendar, Directory, Inbox, More). From `md` up, those same links are a sidebar and the tab bar is hidden.
+- Pad for the tab bar and `env(safe-area-inset-*)`.
+- Check a phone-width viewport before finishing a UI change, and `md` when a wider layout was added.

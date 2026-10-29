@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Building2, Bell, Home, MoreHorizontal, WifiOff } from "lucide-react";
+import { CalendarDays, Building2, Bell, Home, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/domain/types";
 
@@ -20,47 +20,75 @@ const NAV = [
   { href: "/more", label: "More", icon: MoreHorizontal },
 ];
 
+function isActive(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
 export function AppShell({ profile, children }: AppShellProps) {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header */}
-      <header className="border-b bg-background sticky top-0 z-40">
-        <div className="flex items-center justify-between h-14 px-4 max-w-screen-lg mx-auto">
-          <span className="font-semibold text-sm">West MIS</span>
-          <span className="text-sm text-muted-foreground hidden sm:block">
-            {profile.firstName} {profile.lastName}
-          </span>
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="flex-1 max-w-screen-lg mx-auto w-full px-4 py-4 pb-20 sm:pb-4">
-        {children}
-      </main>
-
-      {/* Bottom nav — mobile only */}
-      <nav className="fixed bottom-0 left-0 right-0 border-t bg-background sm:hidden z-40">
-        <div className="flex">
+    <div className="flex min-h-screen flex-col bg-gray-50 md:flex-row">
+      <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col md:border-r md:border-gray-200 md:bg-white">
+        <div className="px-5 py-5 text-base font-semibold text-gray-900">West MIS</div>
+        <nav className="flex flex-col gap-1 px-3">
           {NAV.map(({ href, label, icon: Icon }) => {
-            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            const active = isActive(pathname, href);
             return (
               <Link
                 key={href}
                 href={href}
                 className={cn(
-                  "flex-1 flex flex-col items-center gap-0.5 py-2 text-xs min-h-[56px] justify-center transition-colors",
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium",
+                  active ? "bg-brand-50 text-brand-500" : "text-gray-700 hover:bg-gray-100"
                 )}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="h-5 w-5" />
                 <span>{label}</span>
               </Link>
             );
           })}
-        </div>
-      </nav>
+        </nav>
+        <p className="mt-auto px-5 py-4 text-sm text-gray-500">
+          {profile.firstName} {profile.lastName}
+        </p>
+      </aside>
+
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 border-b border-gray-200 bg-white pt-[env(safe-area-inset-top)]">
+          <div className="mx-auto flex h-14 max-w-screen-lg items-center justify-between px-4 md:px-6">
+            <span className="text-base font-semibold text-gray-900 md:sr-only">West MIS</span>
+            <span className="hidden text-sm font-medium text-gray-700 sm:block md:ml-auto">
+              {profile.firstName} {profile.lastName}
+            </span>
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-screen-lg flex-1 px-4 py-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:px-6 md:pb-8">
+          {children}
+        </main>
+
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+          <div className="flex">
+            {NAV.map(({ href, label, icon: Icon }) => {
+              const active = isActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium",
+                    active ? "text-brand-500" : "text-gray-500"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }

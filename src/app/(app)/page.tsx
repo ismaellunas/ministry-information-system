@@ -20,13 +20,13 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Home</h1>
-      <p className="text-muted-foreground text-sm">
+      <h1 className="page-title">Home</h1>
+      <p className="page-copy">
         Welcome to the Northeastern Mindanao District — West Section Ministry Information System.
       </p>
-      <div className="rounded-lg border p-4 bg-muted/30">
-        <p className="text-sm font-medium">Your roles</p>
-        <ul className="mt-1 text-sm text-muted-foreground list-disc list-inside">
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs">
+        <p className="text-sm font-semibold text-gray-900">Your roles</p>
+        <ul className="mt-2 list-inside list-disc text-sm text-gray-500">
           {roles.length === 0 && <li>No roles assigned. Contact your administrator.</li>}
           {roles.map((r) => <li key={r.id}>{r.role}</li>)}
         </ul>

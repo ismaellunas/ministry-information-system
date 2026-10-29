@@ -11,11 +11,11 @@ export default async function MorePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">More</h1>
-      <div className="divide-y rounded-lg border bg-card">
-        <div className="px-4 py-3">
-          <p className="text-sm font-medium">Account</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
+      <h1 className="page-title">More</h1>
+      <div className="divide-y divide-gray-200 rounded-2xl border border-gray-200 bg-white shadow-theme-xs">
+        <div className="px-5 py-4">
+          <p className="text-sm font-semibold text-gray-900">Account</p>
+          <p className="page-copy mt-0.5">{user.email}</p>
         </div>
         <div className="px-4 py-3">
           <SignOutButton />

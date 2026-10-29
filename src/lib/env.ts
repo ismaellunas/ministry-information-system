@@ -1,10 +1,16 @@
 import { z } from "zod";
 
+const blankToUndefined = (value: unknown) => (value === "" ? undefined : value);
+
 const publicSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required"),
-  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, "NEXT_PUBLIC_VAPID_PUBLIC_KEY is required"),
-  NEXT_PUBLIC_APP_URL: z.string().url("NEXT_PUBLIC_APP_URL must be a valid URL"),
+  // Push and absolute app URL are unused until notifications ship.
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  NEXT_PUBLIC_APP_URL: z.preprocess(
+    blankToUndefined,
+    z.string().url("NEXT_PUBLIC_APP_URL must be a valid URL").optional()
+  ),
 });
 
 const serverSchema = publicSchema.extend({

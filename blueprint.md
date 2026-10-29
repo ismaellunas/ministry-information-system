@@ -51,7 +51,7 @@ This app is the source of truth. Posting events here is mandatory. Nobody is ass
 - **Free forever.** Every dependency must have a usable free tier, and the design must degrade gracefully when a limit is hit.
 - **Church-owned member lists.** Member names stay with that church's reps. Admin sees counts only. The Presbytery sees names only for the one church he owns.
 - **Church-only events stay private.** Admin, the Presbytery acting for the section, and other ministries cannot open another church's church-only event.
-- **Phone first.** Most users will be on mobile, often on poor connections. The first release works offline for viewing, creating, and editing events.
+- **Phone first.** Most users will be on a phone, often on a poor connection. Build every screen mobile-first (§10.1). The first release works offline for viewing, creating, and editing events.
 - **Trustworthy data.** Every change is attributable. The audit log stores no member names and no birthdays.
 
 ### 1.3 Scale and rollout
@@ -849,8 +849,31 @@ No CSV import in this MVP. No ICS feed in this MVP. No print endpoint.
 
 ## 10. UI Map and Dashboards
 
-### 10.1 Navigation
-Bottom tabs on a phone: Home, Calendar, Directory, Inbox, More. Sidebar on a wide screen. Header shows offline state, unsent count, and last sync time.
+### 10.1 Mobile-first (hard requirement)
+
+Every screen is designed and implemented for a phone first. A wider layout may only add space, columns, or a sidebar. It must not be the only place a control, label, or action exists.
+
+- Unprefixed Tailwind classes are the phone layout. `sm:`, `md:`, and `lg:` only add or rearrange that layout.
+- Do not build the phone layout with `max-*` overrides of a desktop layout.
+- One column on a phone. A second column starts at `md`.
+- Primary actions stay in thumb reach. Tap targets are at least 44px. Actions work without hover.
+- Phone shell: single column and bottom tabs — Home, Calendar, Directory, Inbox, More. From `md` up, those same destinations are a sidebar and the tab bar is hidden. Content padding clears the tab bar and `env(safe-area-inset-*)`.
+- Header shows offline state, unsent count, and last sync time.
+- Check a phone-width viewport before a UI change is done. Check `md` as well when the change adds a wider layout.
+
+### 10.1a Visual system (hard requirement)
+
+Typography and chrome follow the TailAdmin light theme at `https://nextjs-demo.tailadmin.com/`. Implement it with this repo's Tailwind setup. Do not add the TailAdmin package.
+
+Tokens live in `src/app/globals.css` and `tailwind.config.ts`.
+
+- Font is Outfit. Body is 16px / 24px, weight 400, color `#1e2939`.
+- Page title (`.page-title`) is 18px semibold `#101828`. Supporting copy (`.page-copy`) is 14px `#6a7282`.
+- Brand is `#465fff`. Active navigation is `#ecf3ff` background with `#465fff` text.
+- Page background is `#f9fafb`. Cards, header, sidebar, and the tab bar are white with a `#e5e7eb` border. Cards use a 16px radius. Controls use a 10px radius and the `theme-xs` shadow.
+- Primary buttons are brand-filled, white text, 44px tall.
+- Inputs are 44px tall. Text is 16px on a phone so iOS does not zoom the field, and 14px from `md`.
+- Tap targets stay at least 44px where the TailAdmin demo uses a shorter control.
 
 ### 10.2 Dashboards
 | Role | Shows |

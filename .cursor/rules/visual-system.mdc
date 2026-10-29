@@ -1,0 +1,15 @@
+---
+description: Typography and UI chrome follow the TailAdmin light theme
+alwaysApply: true
+---
+
+# Visual system
+
+Hard requirement. See blueprint §10.1a. Use this repo's Tailwind tokens. Do not add the TailAdmin package.
+
+- Font is Outfit. Body is 16px/24px `#1e2939`. Page titles use `.page-title` (18px semibold `#101828`). Supporting copy uses `.page-copy` (14px `#6a7282`).
+- Brand is `#465fff` (`brand-500`). Active navigation is `bg-brand-50 text-brand-500`.
+- Page background is `bg-gray-50`. Cards, header, sidebar, and the tab bar are white, `border-gray-200`, `rounded-2xl` for cards, `shadow-theme-xs`.
+- Primary buttons are `bg-brand-500`, white text, `h-11`, `rounded-lg`.
+- Inputs are `h-11`, `rounded-lg`, `border-gray-300`. Use 16px text on a phone and `md:text-sm`.
+- Keep tap targets at least 44px.

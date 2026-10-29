@@ -65,6 +65,40 @@ export interface Profile {
   roles: ProfileRole[];
 }
 
+export interface ChurchDepartmentCount {
+  churchId: string;
+  ministryId: number;
+  memberCount: number;
+  rosterComplete: boolean;
+  updatedBy: string | null;
+  updatedAt: string;
+}
+
+export interface ChurchSummaryRow {
+  churchId: string;
+  churchName: string;
+  ministryId: number;
+  memberCount: number | null;
+  reported: boolean;
+  updatedAt: string | null;
+}
+
+export interface AuditEntry {
+  id: number;
+  actorId: string | null;
+  action: string;
+  entity: string | null;
+  entityId: string | null;
+  detail: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface RoleAssignment {
+  role: UserRole;
+  churchId: string | null;
+  ministryId: number | null;
+}
+
 /** The acting identity for a single request/mutation. */
 export interface Actor {
   profileId: string;
