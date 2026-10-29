@@ -1,0 +1,65 @@
+import { z } from "zod";
+
+const publicSchema = z.object({
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, "NEXT_PUBLIC_VAPID_PUBLIC_KEY is required"),
+  NEXT_PUBLIC_APP_URL: z.string().url("NEXT_PUBLIC_APP_URL must be a valid URL"),
+});
+
+const serverSchema = publicSchema.extend({
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
+  VAPID_PRIVATE_KEY: z.string().min(1, "VAPID_PRIVATE_KEY is required"),
+  VAPID_SUBJECT: z.string().min(1, "VAPID_SUBJECT is required"),
+  CRON_SECRET: z.string().min(1, "CRON_SECRET is required"),
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().email().optional(),
+});
+
+/**
+ * Public env — safe to use in Client Components.
+ * Validated lazily on first access so missing vars give a clear error,
+ * not a cryptic Next.js compiler crash.
+ */
+let _publicEnv: z.infer<typeof publicSchema> | undefined;
+
+export function getPublicEnv(): z.infer<typeof publicSchema> {
+  if (!_publicEnv) {
+    const result = publicSchema.safeParse({
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    });
+    if (!result.success) {
+      throw new Error(
+        `\n\n❌ Missing environment variables:\n${result.error.errors.map((e) => `  • ${e.path.join(".")}: ${e.message}`).join("\n")}\n\nCopy .env.example to .env.local and fill in your Supabase credentials.\n`
+      );
+    }
+    _publicEnv = result.data;
+  }
+  return _publicEnv;
+}
+
+/**
+ * Server-only env. Import only from server modules.
+ * Never import in Client Components or files marked 'use client'.
+ */
+export function getServerEnv() {
+  const pub = getPublicEnv();
+  const result = serverSchema.safeParse({
+    ...pub,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    VAPID_SUBJECT: process.env.VAPID_SUBJECT,
+    CRON_SECRET: process.env.CRON_SECRET,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+  });
+  if (!result.success) {
+    throw new Error(
+      `\n\n❌ Missing server environment variables:\n${result.error.errors.map((e) => `  • ${e.path.join(".")}: ${e.message}`).join("\n")}\n`
+    );
+  }
+  return result.data;
+}

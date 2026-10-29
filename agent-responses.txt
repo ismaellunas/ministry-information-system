@@ -1,0 +1,286 @@
+The answers lock most of the product. Eight items are still open, and three of them change the database. I will treat everything in the locked list and the assumptions as decided unless you correct it.
+
+The blueprint’s “counts only, names hidden” rule is gone. Admin and the Presbytery may read member names in every church. A login can hold more than one role. The first release must show the calendar with no signal. Cancel and Delete are one action.
+
+Locked
+
+People and churches
+• 28 churches. Every active church has at least one rep. Every rep of that church gets conflict alerts and birthday alerts.
+• One Presbytery login, tied to exactly one home church.
+• One person may hold two roles on one login, such as church rep and Men’s Ministry rep. Two reps cannot share an email. Login is email and password only.
+• Admin alone renames a church or marks it closed. A closed church stays on record, including old events and counts, accepts no new events, and has no logins. Its users are moved to other churches first.
+• A closed church is the only church allowed to have zero reps.
+• Pilot church: Great Emmanuel Worship Church Inc. No existing file import. Directory shows pastor name, phone, Facebook, address, map pin, and hotline.
+• No ministers directory. Interface and training are English. Event titles may be English or Cebuano.
+• This app is the source of truth, and posting events is mandatory. Nobody chases churches that stay on Messenger.
+• Product owner for disputes is the Presbyter. Login support is you, the Admin. Offline-upgrade tester is Ptr. Jo Lunas.
+
+Membership
+• The number is membership, entered per church per department, overwritten anytime by that church’s rep.
+• One person belongs to one ministry at that church.
+• Birthday month and day are optional. People without a birthday are still listed and are skipped by reminders.
+• Inactive or transferred people are excluded from birthday alerts.
+• Birth year and age are shown only to that church’s reps.
+• A removed member is hard-deleted after 30 days.
+• The audit log is Admin-only and stores no member names and no birthdays.
+
+Calendar
+• Users create every event. The system does not seed Sunday or midweek services.
+• Recurring events are out of this MVP.
+• No draft and no approval. A sectional event needs no in-app confirmation.
+• Remove hides the event. There is no separate cancel state.
+• No joint events. A section or ministry event can store one host church as the venue. The venue does not change conflict rules, because a conflict is time overlap only.
+• No maximum length.
+• “Save anyway” is the normal path. If both sides refuse to move, nobody yields. Resolution happens in an offline meeting.
+• Dismissing a notification leaves the clash showing on the calendar in red.
+• A user may accept an overlap that still exists. That acceptance and “times no longer overlap” are stored separately.
+• If the times overlap again later, the owners are notified again.
+• If the event saves and the alerts fail, the user still sees success.
+• All-day bounds are computed on the server in Asia/Manila.
+• Another church’s rep may see title, time, scope, location, description, and creator phone on events they are allowed to see.
+
+Birthdays
+• Alerts go only to that church’s reps.
+• Daily alert, plus a digest on the first Sunday at 6:00 AM. On that Sunday they get both.
+• Feb 29 is celebrated on March 1 in a non-leap year.
+• A job that runs late the same morning still sends that day’s alerts.
+• A lock-screen alert may contain the person’s name.
+
+Offline
+• The first release must still show the calendar after four days with no signal, using what was already saved on the phone.
+• Queued edits older than one month are refused and the phone must do a full refresh.
+• A rejected offline edit shows as Failed.
+• Logout clears the on-phone database.
+
+Privacy and access
+• You accept liability for the data, with no consent step in the app.
+• You accept that anyone with Supabase, Vercel, or the backup can read every member.
+• You will do the privacy review yourself.
+• A deactivated rep loses server access on the next request. A phone that is offline keeps the copy it already stored until it connects and is locked out.
+• Admin deactivates leavers immediately.
+
+Hosting
+• You own the GitHub, Supabase, Vercel, and domain accounts, and you accept the Vercel Hobby suspension risk.
+• Saturday outage alerts go to 09269292763.
+• Real data may be entered before a restore drill has succeeded.
+• The first public release waits until a backup job and a “project paused” runbook exist.
+• The second recovery person is still unnamed. That blocks go-live, not the start of building.
+
+Assumptions I will use unless you correct them
+
+• Creating an event asks which role you are acting as when the login has two roles.
+• The Presbytery hat is only a dashboard switch. It does not hide member names or events.
+• Admin and the Presbytery can see every event, including events other churches cannot see.
+• Church reps create local events for their church. The one Presbytery login creates sectional events. A ministry rep creates events for that ministry only. Admin can create any of them.
+• Same-ministry events that overlap conflict. Two sectional events that overlap conflict.
+• A church-only local event conflicts only with other events of that same church. It is hidden from other churches.
+• A public local event is visible to every signed-in user, conflicts with ministry events, and does not conflict with a sectional event.
+• Hosting a sectional event at Church A, at the same time as Church A’s own event, is not a conflict.
+• “Missing” on the Admin dashboard means an active church has no membership number for a department. A typed 0 counts as reported.
+• There is no print or PDF report in this MVP.
+• There are no mute switches in the first release.
+• Different special ministries do conflict with each other.
+• The creator’s name is hidden on another church’s event card. The creator’s phone is shown.
+• An audience such as “pastors only” is a label on the event. It does not hide the event and it does not change the conflict rule.
+• Month and day of birth are visible to everyone who may open that member. Year and age stay on the church-rep screens only.
+
+Still open
+
+These still block the schema or the conflict rules.
+
+R1. Fill this table. Your three lists do not match: counts are Men’s Ministry, Women’s Ministry, Youth Alive, and Christian Education; section reps are MM, WM, Youth, Missions, and Music; special reps are Mission and Evangelism.
+
+┌─────────────────────┬─────────────────────────────────────┬─────────────────────────────────────────────┬───────────────────────┬─────────────────┐
+│ Name                │ Churches report a membership count? │ One section rep who may also have a church? │ A rep with no church? │ Creates events? │
+├─────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────┼───────────────────────┼─────────────────┤
+│ Men’s Ministry      │                                     │                                             │                       │                 │
+├─────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────┼───────────────────────┼─────────────────┤
+│ Women’s Ministry    │                                     │                                             │                       │                 │
+├─────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────┼───────────────────────┼─────────────────┤
+│ Youth Alive         │                                     │                                             │                       │                 │
+├─────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────┼───────────────────────┼─────────────────┤
+│ Christian Education │                                     │                                             │                       │                 │
+├─────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────┼───────────────────────┼─────────────────┤
+│ Music               │                                     │                                             │                       │                 │
+├─────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────┼───────────────────────┼─────────────────┤
+│ Missions / Mission  │                                     │                                             │                       │                 │
+├─────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────┼───────────────────────┼─────────────────┤
+│ Evangelism          │                                     │                                             │                       │                 │
+└─────────────────────┴─────────────────────────────────────┴─────────────────────────────────────────────┴───────────────────────┴─────────────────┘
+
+Add any missing row. For Missions, say whether the section rep and the no-church rep are the same seat or two seats.
+
+R2. Reply “grid OK” or correct the rows that are wrong.
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────┬─────────────────────────────────────┬──────────────────────────────────────────────┐
+│ Overlap                                                                                      │ Warn, and show red?                 │ Who else sees it?                            │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Two events in the same church                                                                │ Yes                                 │ That church, Admin, Presbytery               │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Two local events, different churches                                                         │ No                                  │ Other churches only when the event is public │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Public local event and a ministry event                                                      │ Yes                                 │ Everyone signed in                           │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Church-only local event and a ministry event                                                 │ No                                  │ Hidden from other churches                   │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Public local event and a sectional event                                                     │ No                                  │ Everyone signed in                           │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Ministry event and a sectional event (Youth Alive Fellowship vs Sectional Ministers Meeting) │ Yes                                 │ Everyone signed in                           │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Two different ministries                                                                     │ Yes                                 │ Everyone signed in                           │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Same ministry, two events                                                                    │ Yes                                 │ Everyone signed in                           │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Two sectional events                                                                         │ Yes                                 │ Everyone signed in                           │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ User accepts the overlap                                                                     │ Red clears; times may still overlap │                                              │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ User only dismisses the notification                                                         │ Red stays                           │                                              │
+├──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────┤
+│ Event moves back into the old overlap                                                        │ Red returns; owners notified again  │                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────┴─────────────────────────────────────┴──────────────────────────────────────────────┘
+
+R3. A church’s official Youth Alive membership is 40, and the roster lists 5 people. Which number does the section see: 40, 5, or 40 until someone marks the roster complete?
+
+R4. Do you need last year’s membership numbers kept after a church overwrites them, or is the current number the only one that matters?
+
+R5. F1 says only local church users may see a child’s full name. F4 and F5 say Admin and the Presbytery may read member names in every church. Which rule wins for children?
+
+R6. The first-Sunday digest fails, and the job next runs on Monday. Pick one: send that month’s digest on Monday, or skip the month.
+
+R7. The first release must show the calendar offline. Does the first release also allow creating and editing events offline, or is offline editing later?
+
+R8. A backup stored only in Supabase dies with the Supabase project. K7 requires a backup before public release. Where outside Supabase should the copy go, and who holds the key?
+
+R9. Name any audience labels you actually need (for example Pastors only, All churches, Public). For each, say whether it hides the event from anyone. Also say whether the creator’s name is shown beside the creator’s phone.
+
+The privacy correction and the same-location correction both stand. Admin and the Presbytery do not get a back door into church-only events, and a sectional event hosted at a church conflicts with that church’s own event when the location matches. Two choices below are still inconsistent, so they stay open.
+
+Locked this round
+
+Roles and events
+• If a login has two roles, creating an event asks which role they are using.
+• Church reps create that church’s local events.
+• Presbytery, section ministry reps, and special ministry reps create sectional events. A special-ministry event is sectional.
+• A section ministry rep creates sectional events for their own ministry. The Presbytery creates sectional events, including a general one such as a ministers’ meeting.
+• Admin can create and edit sectional events and public local events. Admin cannot open a church-only event.
+
+Ministries
+
+┌─────────────────────┬──────────────────┬───────────────────────────────┬────────────────────────┬────────────────────────────────────┐
+│ Ministry            │ Membership count │ Section rep                   │ Rep may have no church │ Events                             │
+├─────────────────────┼──────────────────┼───────────────────────────────┼────────────────────────┼────────────────────────────────────┤
+│ Men’s Ministry      │ Yes              │ Yes, may also be a church rep │ No                     │ Sectional, for Men’s Ministry      │
+├─────────────────────┼──────────────────┼───────────────────────────────┼────────────────────────┼────────────────────────────────────┤
+│ Women’s Ministry    │ Yes              │ Yes, may also be a church rep │ No                     │ Sectional, for Women’s Ministry    │
+├─────────────────────┼──────────────────┼───────────────────────────────┼────────────────────────┼────────────────────────────────────┤
+│ Youth Alive         │ Yes              │ Yes, may also be a church rep │ No                     │ Sectional, for Youth Alive         │
+├─────────────────────┼──────────────────┼───────────────────────────────┼────────────────────────┼────────────────────────────────────┤
+│ Christian Education │ Yes              │ Yes, may also be a church rep │ No                     │ Sectional, for Christian Education │
+├─────────────────────┼──────────────────┼───────────────────────────────┼────────────────────────┼────────────────────────────────────┤
+│ Music               │ No               │ Yes, may also be a church rep │ No                     │ Sectional, for Music               │
+├─────────────────────┼──────────────────┼───────────────────────────────┼────────────────────────┼────────────────────────────────────┤
+│ Evangelism          │ No               │ Yes, may also be a church rep │ Allowed                │ Sectional, for Evangelism          │
+└─────────────────────┴──────────────────┴───────────────────────────────┴────────────────────────┴────────────────────────────────────┘
+
+Missions is not in the system. Music and Evangelism never appear as “missing” counts. Missing means an active church has no current membership number for Men’s Ministry, Women’s Ministry, Youth Alive, or Christian Education. A typed 0 counts as reported.
+
+Membership
+• The section sees the typed count until a church rep marks that department’s roster complete. After that, the live roster total is official.
+• Only the current number is kept. Overwriting removes the previous number.
+• Admin sees counts and sees no member names.
+• The Presbytery sees member names, birthdays, and ages only for the one church he owns, including children of that church.
+• Every other church’s member names stay with that church’s reps. A child’s name follows that same rule.
+
+Visibility
+• A church-only local event is visible only to that church’s reps, which includes the Presbytery when it is his own church.
+• Admin, the Presbytery acting for the section, and other ministry reps cannot see another church’s church-only event.
+• A public local event is visible to every signed-in user.
+• Audience labels do not hide an event and do not change conflicts. The labels are: Pastors Only, All Churches, Public, MM Only, WM Only, YA Only, MM & WM, Christian Education.
+• The word Public on that list is only a label. Hiding is controlled by church-only versus public on a local event.
+
+Conflicts
+
+┌───────────────────────────────────────────────────────────────────────────────┬────────────────────────────────────────────────┬────────────────────────────────────────────┐
+│ Overlap                                                                       │ Red?                                           │ Who can see it                             │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Two events in the same church                                                 │ Yes                                            │ Whoever is allowed to see those events     │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Two local events, different churches                                          │ No                                             │ Other churches only if the event is public │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Public local event and a ministry event                                       │ Yes                                            │ Everyone signed in                         │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Church-only local event and a ministry event                                  │ No                                             │ That church only                           │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Public local event and a sectional event at a different place                 │ No                                             │ Everyone signed in                         │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Public local event held at Church A, and a sectional event hosted at Church A │ Yes                                            │ Everyone signed in                         │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Ministry event and a sectional event                                          │ Yes                                            │ Everyone signed in                         │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Two different ministries                                                      │ Yes                                            │ Everyone signed in                         │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Two events of the same ministry                                               │ Yes                                            │ Everyone signed in                         │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ Two sectional events                                                          │ Yes                                            │ Everyone signed in                         │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ User accepts the overlap                                                      │ Red clears, even if the times still overlap    │                                            │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ User dismisses the notification only                                          │ Red stays                                      │                                            │
+├───────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────┼────────────────────────────────────────────┤
+│ The overlap comes back                                                        │ Red returns, and the owners are notified again │                                            │
+└───────────────────────────────────────────────────────────────────────────────┴────────────────────────────────────────────────┴────────────────────────────────────────────┘
+
+Same location means the sectional event’s host church is Church A and the local event is set as taking place at Church A. Matching typed place names does not count. A local event defaults to its own church unless the creator sets another place.
+
+Owners notified means every rep of that church for a local event, and the creator plus the Presbytery for a sectional event.
+
+Also locked
+• No print or PDF. No mute switches in the first release.
+• Birth month and day are visible to whoever may open that member. Year and age stay on that church’s own screens.
+• If the first-Sunday job does not run on that Sunday, that month’s digest is skipped.
+• The first release includes offline viewing, creating, and editing. A queued edit older than one month fails and the phone must refresh. A rejected edit shows as Failed.
+• Logout clears the on-phone database.
+
+Still open
+
+S1. Creator on an event card another church is allowed to see. Pick one:
+• phone only, no name
+• name and phone
+
+S2. Church A has a church-only event at its own building. A sectional event is hosted at Church A at the same time. Pick one:
+• No conflict. Church-only events conflict only with other events of that same church.
+• Red on Church A’s calendar only. The section sees no private title.
+• Red for both. The section sees that Church A is busy, without the private title or description.
+
+S3. Backup copy outside Supabase is still undecided. That blocks public release and does not block building. The second account-recovery person is still unnamed and blocks public release the same way.
+
+S1 and S2 are locked. S3 stays deferred and still blocks public release only.
+
+S1. Creator on another church’s event card
+
+Phone only. No name.
+
+That applies to every event the viewer is allowed to open in full: public local events and sectional events. Reps of the creating church still see the creator’s name on their own events. The Presbytery sees the name only for events of the one church he owns.
+
+S2. Church-only event at the host church
+
+Red on both sides.
+
+Church A’s reps see the private title, description, and creator, and they see the sectional event. The Presbytery, Admin, and the creator of the sectional event see a conflict that says Church A is busy at that time. They do not see the private title, description, audience, creator name, or creator phone.
+
+Other churches do not see that busy notice. They still see the sectional event itself.
+
+This applies when the sectional event’s host church is Church A and the local event is set as taking place at Church A. It includes ministry events, because those are sectional. A church-only event does not conflict with a sectional or ministry event held somewhere else, and it stays hidden in that case.
+
+A public local event hosted at Church A still conflicts in full. Everyone who can see that public event sees its real title.
+
+Notifications for this case go to every rep of Church A, with the real title, and to the Presbytery and the sectional creator, with “Church A is busy.”
+
+S3. Deferred until public release
+
+• Where the backup copy lives outside Supabase, and who holds the key.
+• The second person who can recover the GitHub, Supabase, Vercel, and domain accounts.
+
+Building can start without those. The first public release cannot.
+
