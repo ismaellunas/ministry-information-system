@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { publicEnv, getServerEnv } from "@/lib/env";
+import { getServerEnv } from "@/lib/env";
 
 /**
  * Service-role client — bypasses RLS.
@@ -9,9 +9,9 @@ import { publicEnv, getServerEnv } from "@/lib/env";
  * NEVER use to render member lists or church-only events.
  */
 export function createAdminClient() {
-  const { SUPABASE_SERVICE_ROLE_KEY } = getServerEnv();
+  const { NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = getServerEnv();
   return createClient<Database>(
-    publicEnv.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );

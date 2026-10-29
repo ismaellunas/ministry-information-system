@@ -949,7 +949,7 @@ The Admin accepts liability for the data held here and will review Philippine pr
 ### 13.2 Environment variables
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 NEXT_PUBLIC_APP_URL=
 
