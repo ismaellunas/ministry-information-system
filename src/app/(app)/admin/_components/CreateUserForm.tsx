@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Church, Ministry } from "@/domain/types";
 import { Button } from "@/core/ui/button";
+import { SAVE_DEBOUNCE_MS } from "@/core/ui/autosave";
 import { Input } from "@/core/ui/input";
 import { Label } from "@/core/ui/label";
 import { Select } from "@/core/ui/select";
@@ -27,8 +28,12 @@ export function CreateUserForm({
   const [password, setPassword] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const lastSubmit = useRef(0);
 
   async function onSubmit(formData: FormData) {
+    const now = Date.now();
+    if (pending || now - lastSubmit.current < SAVE_DEBOUNCE_MS) return;
+    lastSubmit.current = now;
     setError(null);
     setPending(true);
     const result = await createUserAction(formData);
@@ -157,9 +162,11 @@ export function CreateUserForm({
         </div>
       )}
 
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Creating…" : "Create user"}
-      </Button>
+      {!password && (
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? "Saving…" : "Complete"}
+        </Button>
+      )}
     </form>
   );
 }

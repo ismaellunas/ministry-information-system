@@ -38,7 +38,7 @@
 ### 1.1 Purpose
 A shared information system for the 28 churches of the NORTHEASTERN MINDANAO DISTRICT-West Section so that churches, ministries, and the Presbytery can:
 
-1. **Plan activities and see clashes.** This is the core feature. The system warns and marks clashes in red. It never blocks a save. "Save anyway" is the normal path. Nobody is forced to move an event; unresolved clashes are settled in offline meetings.
+1. **Plan activities and see clashes.** This is the core feature. The system warns and marks clashes in red. It never blocks a save. **Keep this time** is the normal path. Nobody is forced to move an event; unresolved clashes are settled in offline meetings.
 2. Keep a **directory** of churches.
 3. Track **current membership** per reporting department, and optionally **register members** per ministry.
 4. Send **birthday reminders** to that church's own reps.
@@ -733,7 +733,7 @@ The response for a redacted side must not include the private activity id, title
    - Local side: every active rep of that church.
    - Sectional side: the creator and the Presbytery. One notification if those are the same person.
    - Busy case: church reps get the real title; Presbytery and the sectional creator get "{Church} is busy." Other churches get nothing for that pair.
-9. Never refuse the save. The UI shows the warning before save and offers **Change time** and **Save anyway**.
+9. Never refuse the save. The field edit waits 500ms, then the UI shows the warning before the write and offers **Change time** and **Keep this time**.
 10. If notification delivery fails, the save response is still success.
 
 There is no in-app "who must yield" flag. A ministry fellowship is socially expected to move for a sectional ministers' meeting, and that expectation is handled in the offline meeting, not by the database.
@@ -875,6 +875,17 @@ Tokens live in `src/app/globals.css` and `tailwind.config.ts`.
 - Inputs are 44px tall. Text is 16px on a phone so iOS does not zoom the field, and 14px from `md`.
 - Tap targets stay at least 44px where the TailAdmin demo uses a shorter control.
 
+### 10.1b Saving (hard requirement)
+
+There is no Save button.
+
+- A field edit writes itself after `SAVE_DEBOUNCE_MS` (500ms) of quiet. The same rate is the only debounce in the app. Use `AutosaveForm` in `src/core/ui/autosave.tsx`.
+- Show **Saving…** while the write is in flight and **Saved** when it lands. An offline event says it was saved on this phone.
+- An empty required field does not write and does not show an error. An invalid value shows the field message after the quiet period.
+- A form that must leave the page uses **Done**. A form that finishes a task and stays (creating a user) uses **Complete**. Those buttons are not named Save. A second tap within 500ms does not send again.
+- Sign in, remove, close, deactivate, add role, and password reset stay explicit buttons. They are not saves.
+- An event overlap pauses the write. The choices are **Change time** and **Keep this time**. The server still accepts the event.
+
 ### 10.2 Dashboards
 | Role | Shows |
 |---|---|
@@ -890,8 +901,8 @@ Tokens live in `src/app/globals.css` and `tailwind.config.ts`.
 - Church-only events appear on that church's calendar only.
 - A red event stays red until the overlap ends or someone accepts it.
 - Filters: scope, church, ministry, clashes only.
-- The form asks the acting role when the login has two. Fields: title, all-day, start, end, location text, description, audience label. Local events also have church-only versus public, defaulting to at our church. Sectional events may pick a host church. No draft and no approval step.
-- Save shows **Change time** and **Save anyway**.
+- The form asks the acting role when the login has two. Fields: title, all-day, start, end, location text, description, audience label. Local events also have church-only versus public, defaulting to at our church. Sectional events may pick a host church. No draft and no approval step. Edits save themselves. A new event uses **Done** to return to the calendar.
+- An overlap shows **Change time** and **Keep this time**.
 - Remove asks for confirmation, then hides the event.
 - Another church's opened event shows creator **phone** and not creator name.
 
@@ -1011,7 +1022,7 @@ Vercel logs, Supabase logs, last cron time on the Admin dashboard, and the exter
 | Services | Each role's allows and denies. Roster 40 with five people stays 40 until complete, then follows the roster. Reopen increments generation and notifies again. Accept clears red while times still overlap. Dismiss does not. Save returns success when notify throws. Audit JSON has no member name |
 | Database | Admin selects zero members. Presbytery selects only the home church. Church-only activities are invisible to other churches, Admin, and ministry reps. Last-rep and close-church rules. One Presbytery row. One rep per ministry. Evangelism may lack a church; Music may not. `church_summary()` returns no names |
 | API | Cron bearer. Double run does not duplicate birthdays. Sync replay. Expired 30-day mutation is Failed. Redacted conflict payload has no private id or title |
-| E2E | Login, two-role event create, conflict modal, Save anyway, hat switch, church-only hidden from a second user, offline create, reconnect, server clash. Playwright `setOffline` |
+| E2E | Login, two-role event create, conflict modal, Keep this time, hat switch, church-only hidden from a second user, offline create, reconnect, server clash. Playwright `setOffline` |
 | Manual | Android and iPhone install, push, offline, and a one-week idle login. Ptr. Jo Lunas runs the upgrade-with-unsent-edit test |
 | Pilot | Great Emmanuel Worship Church Inc. before the other churches |
 
@@ -1098,7 +1109,7 @@ R1 is Phases 1–4. R2 is Phase 5. Public release is Phase 6, not the end of Pha
 | Private event title leaks through a conflict payload | Medium | High | Redaction tests on the DTO. Do not return the private activity id |
 | Offline queue duplicates or drops an edit | Medium | High | Client UUIDs, versions, 30-day expiry, Failed state, upgrade test with an unsent item |
 | Churches keep planning on Messenger | High | High | The app is mandatory and nobody is assigned to follow up. Counts and clashes will be wrong when events are missing. Accepted |
-| Long events paint the month red | Medium | Medium | No length cap. Save anyway remains available |
+| Long events paint the month red | Medium | Medium | No length cap. Keep this time remains available |
 | iOS push and storage eviction | High | Medium | Install guide, inbox, sync on open |
 | Birthday job misses Sunday | Medium | Medium | Skip that month's digest. Do not send it on Monday |
 | Service-role or backup holder reads member names | High | High | Accepted. Limit who receives the key. Keep names out of logs and audit detail |
@@ -1125,7 +1136,8 @@ R1 is Phases 1–4. R2 is Phase 5. Public release is Phase 6, not the end of Pha
 | Events | Users create them. No weekly seed. No recurrence in this MVP. No approval. Remove hides the event |
 | Visibility | Church-only stays inside the church. Public local and sectional are visible to every signed-in user |
 | Audience | Label only. Does not hide and does not affect conflicts |
-| Conflicts | Matrix in §8.1. Save anyway is normal. Accept clears red. Dismiss does not. Re-overlap notifies owners again. Same host church conflicts, including the redacted busy notice |
+| Conflicts | Matrix in §8.1. Keep this time is normal. Accept clears red. Dismiss does not. Re-overlap notifies owners again. Same host church conflicts, including the redacted busy notice |
+| Saving | No Save button. Field edits write after 500ms. Done or Complete only when the screen must move on or the task is finished |
 | Creator card | Phone only for another church. Name for the creating church, and for the Presbytery on his own church |
 | Directory | Pastor name, pastor phone, Facebook, address, map pin, hotline |
 | Language | English UI and training. Titles may be English or Cebuano |

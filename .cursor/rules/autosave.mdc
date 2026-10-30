@@ -1,0 +1,14 @@
+---
+description: Field edits save themselves. There is no Save button.
+alwaysApply: true
+---
+
+# Saving
+
+Hard requirement. See blueprint §10.1b.
+
+- Do not add a Save button. Field edits use `AutosaveForm` from `src/core/ui/autosave.tsx` and wait `SAVE_DEBOUNCE_MS` (500ms).
+- Show Saving… and then Saved. An empty required field stays quiet. An invalid value shows the field message after the quiet period.
+- A form that leaves the page uses **Done**. A form that finishes and stays uses **Complete**. Ignore a second tap within 500ms.
+- Sign in, remove, close, deactivate, add role, and password reset stay explicit buttons.
+- An event overlap pauses the write and offers **Change time** and **Keep this time**.

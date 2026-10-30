@@ -25,6 +25,8 @@ export function SignOutButton() {
   async function finish() {
     setPending(true);
     await clearLocalDatabase();
+    const worker = navigator.serviceWorker?.controller;
+    worker?.postMessage({ type: "west-mis-clear-pages" });
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");

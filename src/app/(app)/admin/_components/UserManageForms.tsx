@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Church, Ministry, Profile } from "@/domain/types";
 import { roleLabel } from "@/domain/roles";
 import { Button } from "@/core/ui/button";
+import { AutosaveForm } from "@/core/ui/autosave";
 import { Input } from "@/core/ui/input";
 import { Label } from "@/core/ui/label";
 import { Select } from "@/core/ui/select";
@@ -33,6 +34,7 @@ export function UserManageForms({
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState<string | null>(null);
   const [roleKind, setRoleKind] = useState("CHURCH_REP");
+  const savedAccount = useRef(`${profile.firstName}\n${profile.lastName}\n${profile.phoneNumber ?? ""}`);
 
   async function run(
     action: (formData: FormData) => Promise<{ ok: true } | { ok: false; error: string }>,
@@ -54,9 +56,16 @@ export function UserManageForms({
         <p className="text-sm font-semibold text-gray-900">Account</p>
         <p className="page-copy mt-1">{email}</p>
         <p className="page-copy">{profile.isActive ? "Active" : "Deactivated"}</p>
-        <form
+        <AutosaveForm
           className="mt-4 space-y-3"
-          action={(formData) => run(updateUserAction, formData)}
+          save={async (formData) => {
+            const next = `${String(formData.get("first_name") ?? "")}\n${String(formData.get("last_name") ?? "")}\n${String(formData.get("phone") ?? "")}`;
+            if (next === savedAccount.current) return false;
+            const result = await updateUserAction(formData);
+            if (!result.ok) return result.error;
+            savedAccount.current = next;
+            return null;
+          }}
         >
           <input type="hidden" name="profile_id" value={profile.id} />
           <div className="space-y-1">
@@ -71,8 +80,7 @@ export function UserManageForms({
             <Label htmlFor="phone">Phone</Label>
             <Input id="phone" name="phone" type="tel" defaultValue={profile.phoneNumber ?? ""} />
           </div>
-          <Button type="submit" className="w-full">Save name</Button>
-        </form>
+        </AutosaveForm>
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs">

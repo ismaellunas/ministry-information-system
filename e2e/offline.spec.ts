@@ -22,9 +22,8 @@ test.describe("offline calendar", () => {
     await page.getByRole("button", { name: "Sign in" }).click();
     await page.goto("/calendar/new");
     const title = `Offline ${Date.now()}`;
-    await page.getByLabel("Title").fill(title);
     await context.setOffline(true);
-    await page.getByRole("button", { name: "Save event" }).click();
+    await page.getByLabel("Title").fill(title);
     await expect(page.getByText("Saved on this phone")).toBeVisible();
     await context.setOffline(false);
     await page.goto("/more");

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef } from "react";
 import type { ChurchDepartmentCount, Ministry } from "@/domain/types";
-import { Button } from "@/core/ui/button";
+import { AutosaveForm } from "@/core/ui/autosave";
 import { Input } from "@/core/ui/input";
 import { Label } from "@/core/ui/label";
 import { saveCountAction } from "@/app/(app)/home/actions";
@@ -43,27 +42,19 @@ function CountRow({
   ministry: Ministry;
   current?: ChurchDepartmentCount;
 }) {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-  const [pending, setPending] = useState(false);
-
-  async function onSubmit(formData: FormData) {
-    setError(null);
-    setSaved(false);
-    setPending(true);
-    const result = await saveCountAction(formData);
-    setPending(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    setSaved(true);
-    router.refresh();
-  }
-
+  const saved = useRef(`${current?.memberCount ?? ""}|${current?.rosterComplete ? "1" : "0"}`);
   return (
-    <form action={onSubmit} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs">
+    <AutosaveForm
+      className="rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs"
+      save={async (formData) => {
+        const next = `${String(formData.get("member_count") ?? "")}|${formData.get("roster_complete") === "on" ? "1" : "0"}`;
+        if (next === saved.current) return false;
+        const result = await saveCountAction(formData);
+        if (!result.ok) return result.error;
+        saved.current = next;
+        return null;
+      }}
+    >
       <input type="hidden" name="church_id" value={churchId} />
       <input type="hidden" name="ministry_id" value={ministry.id} />
       <p className="text-sm font-semibold text-gray-900">{ministry.name}</p>
@@ -96,11 +87,6 @@ function CountRow({
           </p>
         )}
       </div>
-      {error && <p className="mt-3 text-sm text-destructive" role="alert">{error}</p>}
-      {saved && <p className="mt-3 text-sm text-gray-600">Saved.</p>}
-      <Button type="submit" className="mt-4 w-full" disabled={pending}>
-        {pending ? "Saving…" : "Save count"}
-      </Button>
-    </form>
+    </AutosaveForm>
   );
 }

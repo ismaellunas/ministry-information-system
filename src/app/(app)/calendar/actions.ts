@@ -25,7 +25,7 @@ export async function previewEventAction(formData: FormData): Promise<ActionResu
   }
 }
 
-export async function saveEventAction(formData: FormData): Promise<ActionResult<{ id: string }>> {
+export async function saveEventAction(formData: FormData): Promise<ActionResult<{ id: string; version: number }>> {
   try {
     const actor = await requireProfile();
     const { activities } = await createServices(actor);
@@ -34,7 +34,7 @@ export async function saveEventAction(formData: FormData): Promise<ActionResult<
     revalidatePath(`/calendar/${saved.id}`);
     revalidatePath("/notifications");
     revalidatePath("/");
-    return ok({ id: saved.id });
+    return ok({ id: saved.id, version: saved.version });
   } catch (error) {
     return fail(error);
   }

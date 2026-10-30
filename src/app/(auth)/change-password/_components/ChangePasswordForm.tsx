@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/core/ui/button";
+import { SAVE_DEBOUNCE_MS } from "@/core/ui/autosave";
 import { Input } from "@/core/ui/input";
 import { Label } from "@/core/ui/label";
 import { Card, CardContent } from "@/core/ui/card";
@@ -15,9 +16,13 @@ export function ChangePasswordForm() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const lastSubmit = useRef(0);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const now = Date.now();
+    if (loading || now - lastSubmit.current < SAVE_DEBOUNCE_MS) return;
+    lastSubmit.current = now;
     setError(null);
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirm) { setError("Passwords do not match."); return; }
@@ -65,7 +70,7 @@ export function ChangePasswordForm() {
           </div>
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Saving…" : "Set password"}
+            {loading ? "Saving…" : "Done"}
           </Button>
         </form>
       </CardContent>

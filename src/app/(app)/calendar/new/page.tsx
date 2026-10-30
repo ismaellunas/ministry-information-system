@@ -52,6 +52,7 @@ export default async function NewEventPage() {
         ownMinistryId={ministryId}
         churches={churchList.map((church) => ({ id: church.id, name: church.name, isActive: church.isActive }))}
         ministries={ministryList.map((ministry) => ({ id: ministry.id, name: ministry.name }))}
+        doneHref="/calendar"
       />
     </div>
   );

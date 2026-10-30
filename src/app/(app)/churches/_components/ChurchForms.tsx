@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Church } from "@/domain/types";
 import { formatPhoneInput, toProperCase } from "@/domain/directory";
@@ -8,6 +8,7 @@ import { Button } from "@/core/ui/button";
 import { Input } from "@/core/ui/input";
 import { Label } from "@/core/ui/label";
 import { Textarea } from "@/core/ui/textarea";
+import { AutosaveForm, SAVE_DEBOUNCE_MS } from "@/core/ui/autosave";
 import {
   closeChurchAction,
   createChurchAction,
@@ -18,10 +19,14 @@ import {
 
 export function CreateChurchForm() {
   const router = useRouter();
+  const lastSubmit = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(formData: FormData) {
+    const now = Date.now();
+    if (pending || now - lastSubmit.current < SAVE_DEBOUNCE_MS) return;
+    lastSubmit.current = now;
     setError(null);
     setPending(true);
     const result = await createChurchAction(formData);
@@ -41,7 +46,7 @@ export function CreateChurchForm() {
       </div>
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Creating…" : "Add church"}
+        {pending ? "Saving…" : "Done"}
       </Button>
     </form>
   );
@@ -49,22 +54,23 @@ export function CreateChurchForm() {
 
 export function DirectoryForm({ church, canClose }: { church: Church; canClose: boolean }) {
   const router = useRouter();
+  const savedName = useRef(church.name);
+  const savedDirectory = useRef(directorySignature(church));
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   return (
     <div className="space-y-6">
       {canClose && (
-        <form
+        <AutosaveForm
           className="space-y-3"
-          action={async (formData) => {
-            setError(null);
+          save={async (formData) => {
+            const name = String(formData.get("name") ?? "").trim();
+            if (name === savedName.current) return false;
             const result = await renameChurchAction(formData);
-            if (!result.ok) setError(result.error);
-            else {
-              setSaved(true);
-              router.refresh();
-            }
+            if (!result.ok) return result.error;
+            savedName.current = name;
+            router.refresh();
+            return null;
           }}
         >
           <input type="hidden" name="church_id" value={church.id} />
@@ -72,21 +78,18 @@ export function DirectoryForm({ church, canClose }: { church: Church; canClose: 
             <Label htmlFor="name">Church name</Label>
             <Input id="name" name="name" defaultValue={church.name} required />
           </div>
-          <Button type="submit" variant="outline" className="w-full">Rename</Button>
-        </form>
+        </AutosaveForm>
       )}
 
-      <form
+      <AutosaveForm
         className="space-y-3"
-        action={async (formData) => {
-          setError(null);
-          setSaved(false);
+        save={async (formData) => {
+          const next = directorySignatureFromForm(formData);
+          if (next === savedDirectory.current) return false;
           const result = await updateDirectoryAction(formData);
-          if (!result.ok) setError(result.error);
-          else {
-            setSaved(true);
-            router.refresh();
-          }
+          if (!result.ok) return result.error;
+          savedDirectory.current = next;
+          return null;
         }}
       >
         <input type="hidden" name="church_id" value={church.id} />
@@ -133,19 +136,17 @@ export function DirectoryForm({ church, canClose }: { church: Church; canClose: 
           <p className="page-copy">Use the church Facebook page link, not a personal profile share.</p>
         </div>
         <MapPinField defaultValue={church.mapPinUrl} address={church.address} />
-        <Button type="submit" className="w-full">Save directory</Button>
-      </form>
+      </AutosaveForm>
 
-      <form
+      <AutosaveForm
         className="space-y-3"
-        action={async (formData) => {
-          setError(null);
+        save={async (formData) => {
+          const file = formData.get("logo");
+          if (!(file instanceof File) || file.size === 0) return false;
           const result = await uploadLogoAction(formData);
-          if (!result.ok) setError(result.error);
-          else {
-            setSaved(true);
-            router.refresh();
-          }
+          if (!result.ok) return result.error;
+          router.refresh();
+          return null;
         }}
       >
         <input type="hidden" name="church_id" value={church.id} />
@@ -153,8 +154,7 @@ export function DirectoryForm({ church, canClose }: { church: Church; canClose: 
           <Label htmlFor="logo">Logo (WebP, PNG, or JPEG, 200 KB max)</Label>
           <Input id="logo" name="logo" type="file" accept="image/webp,image/png,image/jpeg" />
         </div>
-        <Button type="submit" variant="outline" className="w-full">Upload logo</Button>
-      </form>
+      </AutosaveForm>
 
       {canClose && church.isActive && (
         <form
@@ -172,9 +172,26 @@ export function DirectoryForm({ church, canClose }: { church: Church; canClose: 
       )}
 
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-      {saved && <p className="text-sm text-gray-600">Saved.</p>}
     </div>
   );
+}
+
+function directorySignature(church: Church) {
+  return [
+    church.pastorFirstName ?? "",
+    church.pastorLastName ?? "",
+    church.pastorPhone ?? "",
+    church.hotlineNumber ?? "",
+    church.address ?? "",
+    church.facebookPageUrl ?? "",
+    church.mapPinUrl ?? "",
+  ].join("\n");
+}
+
+function directorySignatureFromForm(formData: FormData) {
+  return ["pastor_first_name", "pastor_last_name", "pastor_phone", "hotline_number", "address", "facebook_page_url", "map_pin_url"]
+    .map((name) => String(formData.get(name) ?? ""))
+    .join("\n");
 }
 
 function NameField({
@@ -204,6 +221,7 @@ function NameField({
           const next = event.target.value.trim()
             ? toProperCase(event.target.value)
             : event.target.value;
+          event.target.value = next;
           setValue(next);
         }}
       />

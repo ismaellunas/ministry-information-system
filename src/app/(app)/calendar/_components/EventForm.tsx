@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AUDIENCE_OPTIONS } from "@/domain/activity-access";
 import { roleLabel } from "@/domain/roles";
@@ -10,10 +10,13 @@ import { Input } from "@/core/ui/input";
 import { Label } from "@/core/ui/label";
 import { Select } from "@/core/ui/select";
 import { Textarea } from "@/core/ui/textarea";
+import { SAVE_DEBOUNCE_MS } from "@/core/ui/autosave";
 import { activityDraftFromForm } from "@/domain/activity-form";
 import { previewLocalSave, queueEventSave, runSync } from "@/composition/browser";
 import { AppError } from "@/domain/errors";
 import { previewEventAction, saveEventAction } from "../actions";
+
+type PersistResult = "saved" | "paused" | "idle" | "error";
 
 export interface EventFormValues {
   id?: string;
@@ -42,6 +45,7 @@ export function EventForm({
   ownMinistryId,
   churches,
   ministries,
+  doneHref,
 }: {
   values: EventFormValues;
   roles: UserRole[];
@@ -50,14 +54,25 @@ export function EventForm({
   ownMinistryId: number | null;
   churches: Array<{ id: string; name: string; isActive: boolean }>;
   ministries: Array<{ id: number; name: string }>;
+  /** Set when leaving this screen is the end of the task. The fields still save on their own. */
+  doneHref?: string;
 }) {
   const router = useRouter();
+  // The new-event page renders again after a save. Keep the id from the first render.
+  const [eventId] = useState(values.id);
+  const formRef = useRef<HTMLFormElement>(null);
+  const versionRef = useRef<HTMLInputElement>(null);
+  const versionMemory = useRef(values.version == null ? "" : String(values.version));
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const acknowledged = useRef<string | null>(null);
+  const chain = useRef(Promise.resolve<PersistResult>("idle"));
   const [role, setRole] = useState(values.actingRole);
   const [scope, setScope] = useState(values.scope);
   const [allDay, setAllDay] = useState(values.isAllDay);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [savedOnPhone, setSavedOnPhone] = useState(false);
   const activeChurches = churches.filter((church) => church.isActive);
   const repChurches = churches.filter((church) => repChurchIds.includes(church.id));
@@ -65,72 +80,157 @@ export function EventForm({
   const localChurch = role === "CHURCH_REP" ? (singleChurch ? repChurches[0]?.id ?? homeChurchId ?? "" : values.churchId) : values.churchId;
   const ministryValue = role === "SECTION_MINISTRY_REP" ? String(ownMinistryId ?? "") : values.ministryId;
 
-  async function saveOnPhone(formData: FormData, saveAnyway: boolean) {
-    const draft = activityDraftFromForm(formData);
-    const notes = await previewLocalSave(draft);
-    if (notes.length > 0 && !saveAnyway) {
-      setWarnings(notes);
-      setPending(false);
-      return;
-    }
-    await queueEventSave(draft, draft.expectedVersion ?? null);
-    setSavedOnPhone(true);
-    setPending(false);
-    router.push("/calendar");
+  function overlapKey(formData: FormData) {
+    return ["start_at", "end_at", "is_all_day", "church_id", "host_church_id", "scope", "visibility", "at_own_church", "ministry_id", "acting_role"]
+      .map((name) => String(formData.get(name) ?? ""))
+      .join("|");
   }
 
-  async function submit(formData: FormData, saveAnyway: boolean) {
+  function ready(form: HTMLFormElement): PersistResult | null {
+    if (form.checkValidity()) return null;
+    const invalid = form.querySelector(":invalid");
+    const control = invalid instanceof HTMLInputElement || invalid instanceof HTMLTextAreaElement || invalid instanceof HTMLSelectElement
+      ? invalid
+      : null;
+    if (!control || control.validity.valueMissing) return "idle";
+    setError(control.validationMessage);
+    return "error";
+  }
+
+  async function rememberOnPhone(formData: FormData, key: string): Promise<PersistResult> {
+    const draft = activityDraftFromForm(formData);
+    await queueEventSave(draft, draft.expectedVersion ?? null);
+    acknowledged.current = key;
+    setSavedOnPhone(true);
+    setSaved(false);
+    setWarnings([]);
+    setPending(false);
+    return "saved";
+  }
+
+  async function persist(formData: FormData, keepTime: boolean): Promise<PersistResult> {
+    const form = formRef.current;
+    if (!form) return "idle";
+    const blocked = ready(form);
+    if (blocked) {
+      setPending(false);
+      return blocked;
+    }
+    if (!String(formData.get("title") ?? "").trim()) return "idle";
+
     setError(null);
     setPending(true);
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      try {
-        await saveOnPhone(formData, saveAnyway);
-      } catch (error) {
-        setPending(false);
-        setError(error instanceof AppError ? error.message : "Could not save on this phone.");
-      }
-      return;
-    }
+    const key = overlapKey(formData);
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
     try {
-      if (!saveAnyway) {
-        const preview = await previewEventAction(formData);
-        if (!preview.ok) {
-          setPending(false);
-          setError(preview.error);
-          return;
-        }
-        if (preview.data.warnings.length > 0) {
-          setWarnings(preview.data.warnings);
-          setPending(false);
-          return;
+      if (!keepTime && acknowledged.current !== key) {
+        if (offline) {
+          const notes = await previewLocalSave(activityDraftFromForm(formData));
+          if (notes.length > 0) {
+            setWarnings(notes);
+            setPending(false);
+            return "paused";
+          }
+        } else {
+          const preview = await previewEventAction(formData);
+          if (!preview.ok) {
+            setError(preview.error);
+            setPending(false);
+            return "error";
+          }
+          if (preview.data.warnings.length > 0) {
+            setWarnings(preview.data.warnings);
+            setPending(false);
+            return "paused";
+          }
         }
       }
-      const saved = await saveEventAction(formData);
+      if (offline) return await rememberOnPhone(formData, key);
+      const savedEvent = await saveEventAction(formData);
+      if (!savedEvent.ok) {
+        setError(savedEvent.error);
+        setPending(false);
+        return "error";
+      }
+      versionMemory.current = String(savedEvent.data.version);
+      if (versionRef.current) versionRef.current.value = versionMemory.current;
+      acknowledged.current = key;
+      setSaved(true);
+      setSavedOnPhone(false);
+      setWarnings([]);
       setPending(false);
-      if (!saved.ok) {
-        setError(saved.error);
-        return;
-      }
       void runSync();
-      router.push(`/calendar/${saved.data.id}`);
-      router.refresh();
-    } catch (error) {
+      return "saved";
+    } catch (caught) {
       try {
-        await saveOnPhone(formData, saveAnyway);
+        return await rememberOnPhone(formData, key);
       } catch (localError) {
         setPending(false);
-        setError(localError instanceof Error ? localError.message : "Could not save on this phone.");
+        const message = localError instanceof AppError
+          ? localError.message
+          : caught instanceof Error
+            ? caught.message
+            : "Could not save on this phone.";
+        setError(message);
+        return "error";
       }
     }
+  }
+
+  function kick(keepTime: boolean): Promise<PersistResult> {
+    const next = chain.current.then(async () => {
+      const form = formRef.current;
+      if (!form) return "idle" as const;
+      if (versionRef.current && versionMemory.current) versionRef.current.value = versionMemory.current;
+      return persist(new FormData(form), keepTime);
+    });
+    chain.current = next.catch(() => "error" as const);
+    return next;
+  }
+
+  function schedule() {
+    setSaved(false);
+    setSavedOnPhone(false);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      void kick(false);
+    }, SAVE_DEBOUNCE_MS);
+  }
+
+  async function finish() {
+    if (timer.current) clearTimeout(timer.current);
+    const result = await kick(false);
+    if (result === "paused" || result === "error") return;
+    if (result === "idle") {
+      setError("Add a title before leaving.");
+      return;
+    }
+    if (doneHref) router.push(doneHref);
   }
 
   const showScope = role === "ADMIN" || role === "SECTION_PRESBYTERY";
   const effectiveScope = role === "CHURCH_REP" ? "LOCAL" : role === "SECTION_MINISTRY_REP" ? "SECTIONAL" : scope;
 
   return (
-    <form action={(formData) => submit(formData, false)} className="space-y-3">
-      {values.id && <input type="hidden" name="id" value={values.id} />}
-      {values.version != null && <input type="hidden" name="expected_version" value={values.version} />}
+    <form
+      ref={formRef}
+      className="space-y-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (timer.current) clearTimeout(timer.current);
+        void kick(false);
+      }}
+      onInput={schedule}
+      onChange={schedule}
+      onBlur={(event) => {
+        const next = event.relatedTarget;
+        if (next instanceof Node && event.currentTarget.contains(next)) return;
+        if (timer.current) clearTimeout(timer.current);
+        void kick(false);
+      }}
+    >
+      {eventId && <input type="hidden" name="id" value={eventId} />}
+      <input ref={versionRef} type="hidden" name="expected_version" defaultValue={values.version ?? ""} />
       <input type="hidden" name="acting_role" value={role} />
       <input type="hidden" name="scope" value={effectiveScope} />
       {role === "CHURCH_REP" && singleChurch && <input type="hidden" name="church_id" value={localChurch} />}
@@ -282,24 +382,29 @@ export function EventForm({
           {warnings.map((warning) => (
             <p key={warning} className="page-copy text-conflict">{warning}</p>
           ))}
-          <Button type="button" variant="outline" className="w-full" onClick={() => setWarnings([])}>
+          <Button type="button" variant="outline" className="w-full" onClick={() => {
+            setWarnings([]);
+            document.getElementById("start_at")?.focus();
+          }}>
             Change time
           </Button>
-          <Button type="button" className="w-full" disabled={pending} onClick={(event) => {
-            const form = event.currentTarget.form;
-            if (form) void submit(new FormData(form), true);
+          <Button type="button" className="w-full" disabled={pending} onClick={() => {
+            if (timer.current) clearTimeout(timer.current);
+            void kick(true);
           }}>
-            Save anyway
+            Keep this time
           </Button>
         </div>
       )}
-      {savedOnPhone && (
-        <p className="page-copy" role="status">Saved on this phone. It will sync when you are online.</p>
+      {(pending || saved || savedOnPhone) && (
+        <p className="page-copy" role="status">
+          {pending ? "Saving…" : savedOnPhone ? "Saved on this phone. It will sync when you are online." : "Saved"}
+        </p>
       )}
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-      {warnings.length === 0 && (
-        <Button type="submit" className="w-full" disabled={pending}>
-          {pending ? "Saving…" : "Save event"}
+      {doneHref && (
+        <Button type="button" className="w-full" disabled={pending} onClick={() => void finish()}>
+          Done
         </Button>
       )}
     </form>
