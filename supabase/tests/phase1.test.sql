@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(20);
+select plan(21);
 
 -- Tables exist
 select has_table('public', 'churches', 'churches table exists');
