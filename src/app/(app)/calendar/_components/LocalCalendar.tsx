@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { listStoredActivities, pendingEntityIds, rememberSeen } from "@/composition/browser";
 import type { ActivityWire } from "@/domain/sync";
-import { CalendarBoard, type CalendarItem } from "./CalendarBoard";
+import { CalendarBoard, type AddEventContext, type CalendarItem } from "./CalendarBoard";
 
 export function LocalCalendar({
   initialItems,
@@ -13,6 +13,7 @@ export function LocalCalendar({
   canAdd,
   homeChurchId,
   hideChurchOnly,
+  addEvent,
 }: {
   initialItems: CalendarItem[];
   churches: Array<{ id: string; name: string }>;
@@ -21,6 +22,7 @@ export function LocalCalendar({
   canAdd: boolean;
   homeChurchId: string | null;
   hideChurchOnly: boolean;
+  addEvent: AddEventContext | null;
 }) {
   const [items, setItems] = useState(initialItems);
   const signature = initialItems.map((item) => `${item.id}:${item.start}:${item.clashMessage ?? ""}`).join("|");
@@ -57,7 +59,7 @@ export function LocalCalendar({
   }, [signature, from, hideChurchOnly, homeChurchId]);
 
   return (
-    <CalendarBoard items={items} churches={churches} ministries={ministries} from={from} canAdd={canAdd} />
+    <CalendarBoard items={items} churches={churches} ministries={ministries} from={from} canAdd={canAdd} addEvent={addEvent} />
   );
 }
 

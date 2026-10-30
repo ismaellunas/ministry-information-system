@@ -1,4 +1,4 @@
-import { actingRoleChoices, homeChurchId } from "@/domain/activity-access";
+import { actingRoleChoices, churchRepChurchIds, homeChurchId } from "@/domain/activity-access";
 import { allDayBounds, allDayRangeBounds, formatManila, todayManila } from "@/domain/time";
 import { createServices, getPresbyteryHat, requireProfile } from "@/composition/server";
 import { LocalCalendar } from "./_components/LocalCalendar";
@@ -17,6 +17,8 @@ export default async function CalendarPage({
   const services = await createServices(actor);
   const from = CIVIL.test(searchParams.from ?? "") ? searchParams.from! : todayManila();
   const range = allDayRangeBounds(shiftCivil(from, -7), shiftCivil(from, 42));
+  const roles = actingRoleChoices(actor);
+  const ministryId = actor.roles.find((role) => role.role === "SECTION_MINISTRY_REP")?.ministryId ?? null;
   const hat = actor.roles.some((role) => role.role === "SECTION_PRESBYTERY")
     ? await getPresbyteryHat()
     : "church";
@@ -34,9 +36,21 @@ export default async function CalendarPage({
         churches={churches.map((church) => ({ id: church.id, name: church.name }))}
         ministries={ministries.map((ministry) => ({ id: ministry.id, name: ministry.name }))}
         from={from}
-        canAdd={actingRoleChoices(actor).length > 0}
+        canAdd={roles.length > 0}
         homeChurchId={homeChurchId(actor)}
         hideChurchOnly={hat === "section"}
+        addEvent={
+          roles.length === 0
+            ? null
+            : {
+                roles,
+                homeChurchId: homeChurchId(actor),
+                repChurchIds: churchRepChurchIds(actor),
+                ownMinistryId: ministryId,
+                churches: churches.map((church) => ({ id: church.id, name: church.name, isActive: church.isActive })),
+                ministries: ministries.map((ministry) => ({ id: ministry.id, name: ministry.name })),
+              }
+        }
       />
     </div>
   );

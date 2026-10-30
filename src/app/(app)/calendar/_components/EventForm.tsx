@@ -46,6 +46,7 @@ export function EventForm({
   churches,
   ministries,
   doneHref,
+  onDone,
 }: {
   values: EventFormValues;
   roles: UserRole[];
@@ -56,6 +57,8 @@ export function EventForm({
   ministries: Array<{ id: number; name: string }>;
   /** Set when leaving this screen is the end of the task. The fields still save on their own. */
   doneHref?: string;
+  /** Stay on this page when Done finishes. Used when the form opened without a new route. */
+  onDone?: () => void;
 }) {
   const router = useRouter();
   // The new-event page renders again after a save. Keep the id from the first render.
@@ -205,7 +208,8 @@ export function EventForm({
       setError("Add a title before leaving.");
       return;
     }
-    if (doneHref) router.push(doneHref);
+    if (onDone) onDone();
+    else if (doneHref) router.push(doneHref);
   }
 
   const showScope = role === "ADMIN" || role === "SECTION_PRESBYTERY";
@@ -402,7 +406,7 @@ export function EventForm({
         </p>
       )}
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-      {doneHref && (
+      {(doneHref || onDone) && (
         <Button type="button" className="w-full" disabled={pending} onClick={() => void finish()}>
           Done
         </Button>

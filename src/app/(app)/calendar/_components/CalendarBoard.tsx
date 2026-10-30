@@ -7,7 +7,9 @@ import { Calendar, dateFnsLocalizer, type View } from "react-big-calendar";
 import { format, getDay, parse, startOfWeek } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { ChevronDown, Plus } from "lucide-react";
-import { manilaWallDate } from "@/domain/time";
+import { manilaWallDate, todayManila } from "@/domain/time";
+import type { UserRole } from "@/domain/types";
+import { EventForm, type EventFormValues } from "./EventForm";
 import { searchableText } from "@/domain/search";
 import { Button } from "@/core/ui/button";
 import { Label } from "@/core/ui/label";
@@ -49,20 +51,32 @@ const VIEWS: Array<{ id: View; label: string }> = [
   { id: "agenda", label: "Agenda" },
 ];
 
+export interface AddEventContext {
+  roles: UserRole[];
+  homeChurchId: string | null;
+  repChurchIds: string[];
+  ownMinistryId: number | null;
+  churches: Array<{ id: string; name: string; isActive: boolean }>;
+  ministries: Array<{ id: number; name: string }>;
+}
+
 export function CalendarBoard({
   items,
   churches,
   ministries,
   from,
   canAdd,
+  addEvent,
 }: {
   items: CalendarItem[];
   churches: Array<{ id: string; name: string }>;
   ministries: Array<{ id: number; name: string }>;
   from: string;
   canAdd: boolean;
+  addEvent: AddEventContext | null;
 }) {
   const router = useRouter();
+  const [draft, setDraft] = useState<EventFormValues | null>(null);
   const [view, setView] = useState<View>("month");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchSlot, setSearchSlot] = useState<HTMLDivElement | null>(null);
@@ -113,6 +127,27 @@ export function CalendarBoard({
   function openDay(day: Date) {
     setView("day");
     router.replace(`/calendar?from=${format(day, "yyyy-MM-dd")}`);
+  }
+
+  if (draft && addEvent) {
+    return (
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4">
+        <button type="button" className="min-h-11 text-sm font-medium text-brand-500" onClick={() => setDraft(null)}>
+          Calendar
+        </button>
+        <h2 className="page-title">Add event</h2>
+        <EventForm
+          values={draft}
+          roles={addEvent.roles}
+          homeChurchId={addEvent.homeChurchId}
+          repChurchIds={addEvent.repChurchIds}
+          ownMinistryId={addEvent.ownMinistryId}
+          churches={addEvent.churches}
+          ministries={addEvent.ministries}
+          onDone={() => setDraft(null)}
+        />
+      </div>
+    );
   }
 
   return (
@@ -206,13 +241,13 @@ export function CalendarBoard({
         </SearchableList>
       </div>
 
-      {view === "agenda" && <CalendarNav canAdd={canAdd} onPrevious={() => move(router, from, view, -1)} onNext={() => move(router, from, view, 1)} />}
+      {view === "agenda" && <CalendarNav canAdd={canAdd} onAdd={() => addEvent && setDraft(blankEvent(addEvent))} onPrevious={() => move(router, from, view, -1)} onNext={() => move(router, from, view, 1)} />}
 
       {view === "month" && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 md:hidden">
           <MonthName cursor={cursor} />
           <PhoneMonth cursor={cursor} events={shown} onOpenDay={openDay} />
-          <CalendarNav canAdd={canAdd} onPrevious={() => move(router, from, view, -1)} onNext={() => move(router, from, view, 1)} />
+          <CalendarNav canAdd={canAdd} onAdd={() => addEvent && setDraft(blankEvent(addEvent))} onPrevious={() => move(router, from, view, -1)} onNext={() => move(router, from, view, 1)} />
         </div>
       )}
 
@@ -238,11 +273,33 @@ export function CalendarBoard({
               style={{ height: "100%" }}
             />
           </div>
-          <CalendarNav canAdd={canAdd} onPrevious={() => move(router, from, view, -1)} onNext={() => move(router, from, view, 1)} />
+          <CalendarNav canAdd={canAdd} onAdd={() => addEvent && setDraft(blankEvent(addEvent))} onPrevious={() => move(router, from, view, -1)} onNext={() => move(router, from, view, 1)} />
         </div>
       )}
     </div>
   );
+}
+
+function blankEvent(seed: AddEventContext): EventFormValues {
+  const today = todayManila();
+  const role = seed.roles[0];
+  return {
+    id: crypto.randomUUID(),
+    title: "",
+    description: "",
+    location: "",
+    isAllDay: false,
+    startAt: `${today}T09:00`,
+    endAt: `${today}T10:00`,
+    scope: role === "SECTION_MINISTRY_REP" ? "SECTIONAL" : "LOCAL",
+    visibility: "PUBLIC",
+    churchId: seed.homeChurchId ?? "",
+    ministryId: seed.ownMinistryId ? String(seed.ownMinistryId) : "",
+    hostChurchId: "",
+    atOwnChurch: true,
+    audience: "",
+    actingRole: role,
+  };
 }
 
 export function EventCard({ item }: { item: CalendarItem }) {
@@ -264,10 +321,12 @@ function MonthName({ cursor }: { cursor: Date }) {
 
 function CalendarNav({
   canAdd,
+  onAdd,
   onPrevious,
   onNext,
 }: {
   canAdd: boolean;
+  onAdd: () => void;
   onPrevious: () => void;
   onNext: () => void;
 }) {
@@ -276,7 +335,15 @@ function CalendarNav({
       <Button type="button" variant="outline" onClick={onPrevious}>Previous</Button>
       {canAdd && (
         <Button asChild size="icon">
-          <Link href="/calendar/new" aria-label="Add event">
+          <Link
+            href="/calendar/new"
+            aria-label="Add event"
+            onClick={(event) => {
+              if (navigator.onLine) return;
+              event.preventDefault();
+              onAdd();
+            }}
+          >
             <Plus className="h-5 w-5" />
           </Link>
         </Button>

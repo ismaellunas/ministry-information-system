@@ -2,8 +2,9 @@
  * Navigations are network-first. A page opened while online can open again offline.
  * API responses are never cached. This worker must not delete IndexedDB.
  */
-const CACHE = "west-mis-shell-v3";
+const CACHE = "west-mis-shell-v4";
 const OFFLINE_PAGE = "/offline.html";
+const SHELL_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="mobile-web-app-capable" content="yes"><title>West Section MIS</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f9fafb;color:#1e2939;font-family:Outfit,system-ui,sans-serif;padding:calc(2rem + env(safe-area-inset-top)) 1rem calc(2rem + env(safe-area-inset-bottom))}main{width:100%;max-width:24rem}h1{margin:0;font-size:18px;line-height:28px;font-weight:600;color:#101828}p{margin:1rem 0 0;font-size:14px;line-height:20px;color:#6a7282}a{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;margin-top:1rem;border-radius:10px;font-size:14px;font-weight:500;text-decoration:none}.primary{background:#465fff;color:#fff}.secondary{background:#fff;color:#344054;border:1px solid #d0d5dd}</style></head><body><main><h1>West MIS</h1><p>The calendar opens after this phone has loaded it once.</p><a class="primary" href="/calendar">Calendar</a><a class="secondary" href="/login">Sign in</a></main></body></html>`;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -86,10 +87,12 @@ async function networkFirstPage(request) {
     return response;
   } catch {
     const path = new URL(request.url).pathname;
+    const cachedCalendar = await cache.match("/calendar", { ignoreSearch: true });
     if (path.startsWith("/calendar")) {
-      return (await cache.match(request)) || (await cache.match("/calendar")) || (await cache.match(OFFLINE_PAGE)) || textOffline();
+      const exact = await cache.match(request, { ignoreSearch: true });
+      return usablePage(exact) || usablePage(cachedCalendar) || (await cache.match(OFFLINE_PAGE)) || shellResponse();
     }
-    return (await cache.match("/calendar")) || (await cache.match(OFFLINE_PAGE)) || textOffline();
+    return usablePage(cachedCalendar) || (await cache.match(OFFLINE_PAGE)) || shellResponse();
   }
 }
 
@@ -103,7 +106,7 @@ async function staticAsset(request) {
     if (response.ok) await cache.put(request, response.clone());
     return response;
   } catch {
-    return cached || new Response("", { status: 503, statusText: "Offline" });
+    return cached || new Response("", { status: 204 });
   }
 }
 
@@ -123,6 +126,16 @@ async function clearPages() {
   );
 }
 
-function textOffline() {
-  return new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
+function usablePage(response) {
+  if (!response || !response.ok) return null;
+  const type = response.headers.get("content-type") || "";
+  if (!type.includes("text/html")) return null;
+  return response;
+}
+
+function shellResponse() {
+  return new Response(SHELL_HTML, {
+    status: 200,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
 }
