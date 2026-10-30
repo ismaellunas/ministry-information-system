@@ -34,6 +34,7 @@ export async function updateSession(request: NextRequest) {
     url.pathname.startsWith("/reset-password") ||
     url.pathname.startsWith("/change-password");
   const isApiRoute = url.pathname.startsWith("/api");
+  const isOfflinePage = url.pathname === "/offline";
   const isStaticRoute =
     url.pathname.startsWith("/_next") ||
     url.pathname.startsWith("/icons") ||
@@ -41,7 +42,7 @@ export async function updateSession(request: NextRequest) {
 
   if (isStaticRoute) return supabaseResponse;
 
-  if (!user && !isAuthRoute && !isApiRoute) {
+  if (!user && !isAuthRoute && !isApiRoute && !isOfflinePage) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }

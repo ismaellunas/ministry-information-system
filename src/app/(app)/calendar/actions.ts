@@ -1,51 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { createServices, requireProfile } from "@/composition/server";
-import { parseInput, parseUserRole } from "@/domain/schemas";
+import { activityDraftFromForm } from "@/domain/activity-form";
 import type { ActivityInput } from "@/services/activity.service";
-import type { AudienceLabel, EventVisibility } from "@/domain/types";
 import { fail, ok, type ActionResult } from "../_lib/action-result";
-
-const audienceSchema = z.enum([
-  "PASTORS_ONLY",
-  "ALL_CHURCHES",
-  "PUBLIC",
-  "MM_ONLY",
-  "WM_ONLY",
-  "YA_ONLY",
-  "MM_AND_WM",
-  "CHRISTIAN_EDUCATION",
-]);
 
 function optional(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
 }
 
 function readActivity(formData: FormData): ActivityInput {
-  const ministry = optional(formData.get("ministry_id"));
-  const audience = optional(formData.get("audience"));
-  const version = optional(formData.get("expected_version"));
-  const id = optional(formData.get("id"));
-  return {
-    id: id || undefined,
-    title: optional(formData.get("title")),
-    description: optional(formData.get("description")),
-    location: optional(formData.get("location")),
-    isAllDay: formData.get("is_all_day") === "on",
-    startAt: optional(formData.get("start_at")),
-    endAt: optional(formData.get("end_at")),
-    scope: parseInput(z.enum(["LOCAL", "SECTIONAL"]), optional(formData.get("scope"))),
-    visibility: (optional(formData.get("visibility")) || undefined) as EventVisibility | undefined,
-    churchId: optional(formData.get("church_id")) || undefined,
-    ministryId: ministry ? Number(ministry) : undefined,
-    hostChurchId: optional(formData.get("host_church_id")) || undefined,
-    atOwnChurch: formData.get("at_own_church") === "on",
-    audience: audience ? parseInput(audienceSchema, audience) as AudienceLabel : undefined,
-    actingRole: parseUserRole(optional(formData.get("acting_role"))),
-    expectedVersion: version ? Number(version) : undefined,
-  };
+  return activityDraftFromForm(formData);
 }
 
 export async function previewEventAction(formData: FormData): Promise<ActionResult<{ warnings: string[] }>> {

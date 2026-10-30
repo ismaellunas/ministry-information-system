@@ -1,7 +1,7 @@
-import { actingRoleChoices } from "@/domain/activity-access";
+import { actingRoleChoices, homeChurchId } from "@/domain/activity-access";
 import { allDayBounds, allDayRangeBounds, formatManila, todayManila } from "@/domain/time";
 import { createServices, getPresbyteryHat, requireProfile } from "@/composition/server";
-import { CalendarBoard } from "./_components/CalendarBoard";
+import { LocalCalendar } from "./_components/LocalCalendar";
 import { toCalendarItems } from "./items";
 
 export const metadata = { title: "Calendar — West Section MIS" };
@@ -29,12 +29,14 @@ export default async function CalendarPage({
   return (
     <div className="flex flex-col gap-2 max-md:h-[calc(100dvh-9.25rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:block md:h-auto md:space-y-4">
       <h1 className="page-title shrink-0">Calendar</h1>
-      <CalendarBoard
-        items={toCalendarItems(actor, events, marks, churches, ministries)}
+      <LocalCalendar
+        initialItems={toCalendarItems(actor, events, marks, churches, ministries)}
         churches={churches.map((church) => ({ id: church.id, name: church.name }))}
         ministries={ministries.map((ministry) => ({ id: ministry.id, name: ministry.name }))}
         from={from}
         canAdd={actingRoleChoices(actor).length > 0}
+        homeChurchId={homeChurchId(actor)}
+        hideChurchOnly={hat === "section"}
       />
     </div>
   );

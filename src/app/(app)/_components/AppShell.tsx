@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { CalendarDays, Building2, Bell, Home, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/domain/types";
+import { SyncEngine, SyncStatusLine } from "./SyncEngine";
 
 interface AppShellProps {
   profile: { id: string; firstName: string; lastName: string };
@@ -31,6 +32,7 @@ export function AppShell({ profile, children }: AppShellProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 md:flex-row">
+      <SyncEngine />
       <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col md:border-r md:border-gray-200 md:bg-white">
         <div className="px-5 py-5 text-base font-semibold text-gray-900">West MIS</div>
         <nav className="flex flex-col gap-1 px-3">
@@ -60,9 +62,12 @@ export function AppShell({ profile, children }: AppShellProps) {
         <header className="sticky top-0 z-40 border-b border-gray-200 bg-white pt-[env(safe-area-inset-top)]">
           <div className="mx-auto flex h-14 max-w-screen-lg items-center justify-between px-4 md:px-6">
             <span className="text-base font-semibold text-gray-900 md:sr-only">West MIS</span>
-            <span className="hidden text-sm font-medium text-gray-700 sm:block md:ml-auto">
-              {profile.firstName} {profile.lastName}
-            </span>
+            <div className="ml-auto flex items-center gap-3">
+              <SyncStatusLine />
+              <span className="hidden text-sm font-medium text-gray-700 sm:block">
+                {profile.firstName} {profile.lastName}
+              </span>
+            </div>
           </div>
         </header>
 

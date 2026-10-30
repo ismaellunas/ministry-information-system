@@ -86,6 +86,19 @@ export class SupabaseActivityRepository implements ActivityRepository {
     return this.admin;
   }
 
+  async listForPull(query: { updatedSince: string | null; start: Date | null; end: Date | null }) {
+    const base = this.db.from("activities").select("*");
+    const filtered = query.updatedSince
+      ? base.gte("updated_at", query.updatedSince)
+      : base.lt("start_at", (query.end ?? new Date(0)).toISOString()).gt("end_at", (query.start ?? new Date(0)).toISOString());
+    const { data, error } = await filtered
+      .order("updated_at", { ascending: true })
+      .order("id", { ascending: true })
+      .limit(500);
+    if (error) throw new AppError("DB", error.message);
+    return (data ?? []).map(toActivity);
+  }
+
   async listOverlapping(range: { start: Date; end: Date }) {
     const args = { p_start: range.start.toISOString(), p_end: range.end.toISOString() };
     const rpc = await this.admin.rpc("activities_overlapping", args);

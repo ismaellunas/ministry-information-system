@@ -126,7 +126,10 @@ export class ActivityService {
 
   async save(input: ActivityInput): Promise<Activity> {
     const existing = input.id ? await this.activities.findById(input.id) : null;
-    if (input.id && !existing) throw new AppError("NOT_FOUND", "Event not found.");
+    // A client UUID with no base version is a create. Replay of that create finds the row and updates it.
+    if (!existing && input.expectedVersion != null) {
+      throw new AppError("NOT_FOUND", "Event not found.");
+    }
     if (existing && !canManageActivity(this.actor, existing)) {
       throw new AppError("FORBIDDEN", "You cannot edit this event.");
     }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/composition/server";
 import { SignOutButton } from "./_components/SignOutButton";
+import { SyncPanel } from "./_components/SyncPanel";
 
 export const metadata = { title: "More — West Section MIS" };
 
@@ -11,6 +12,7 @@ export default async function MorePage() {
   return (
     <div className="space-y-4">
       <h1 className="page-title">More</h1>
+      <SyncPanel />
       <div className="divide-y divide-gray-200 rounded-2xl border border-gray-200 bg-white shadow-theme-xs">
         <div className="px-5 py-4">
           <p className="text-sm font-semibold text-gray-900">
@@ -28,7 +30,7 @@ export default async function MorePage() {
             </Link>
           </>
         )}
-        <div className="flex min-h-14 items-center px-5">
+        <div className="px-5 py-3">
           <SignOutButton />
         </div>
       </div>

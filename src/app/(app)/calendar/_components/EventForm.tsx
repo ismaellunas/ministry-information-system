@@ -10,6 +10,9 @@ import { Input } from "@/core/ui/input";
 import { Label } from "@/core/ui/label";
 import { Select } from "@/core/ui/select";
 import { Textarea } from "@/core/ui/textarea";
+import { activityDraftFromForm } from "@/domain/activity-form";
+import { previewLocalSave, queueEventSave, runSync } from "@/composition/browser";
+import { AppError } from "@/domain/errors";
 import { previewEventAction, saveEventAction } from "../actions";
 
 export interface EventFormValues {
@@ -55,36 +58,70 @@ export function EventForm({
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [savedOnPhone, setSavedOnPhone] = useState(false);
   const activeChurches = churches.filter((church) => church.isActive);
   const repChurches = churches.filter((church) => repChurchIds.includes(church.id));
   const singleChurch = repChurches.length <= 1;
   const localChurch = role === "CHURCH_REP" ? (singleChurch ? repChurches[0]?.id ?? homeChurchId ?? "" : values.churchId) : values.churchId;
   const ministryValue = role === "SECTION_MINISTRY_REP" ? String(ownMinistryId ?? "") : values.ministryId;
 
+  async function saveOnPhone(formData: FormData, saveAnyway: boolean) {
+    const draft = activityDraftFromForm(formData);
+    const notes = await previewLocalSave(draft);
+    if (notes.length > 0 && !saveAnyway) {
+      setWarnings(notes);
+      setPending(false);
+      return;
+    }
+    await queueEventSave(draft, draft.expectedVersion ?? null);
+    setSavedOnPhone(true);
+    setPending(false);
+    router.push("/calendar");
+  }
+
   async function submit(formData: FormData, saveAnyway: boolean) {
     setError(null);
     setPending(true);
-    if (!saveAnyway) {
-      const preview = await previewEventAction(formData);
-      if (!preview.ok) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      try {
+        await saveOnPhone(formData, saveAnyway);
+      } catch (error) {
         setPending(false);
-        setError(preview.error);
-        return;
+        setError(error instanceof AppError ? error.message : "Could not save on this phone.");
       }
-      if (preview.data.warnings.length > 0) {
-        setWarnings(preview.data.warnings);
-        setPending(false);
-        return;
-      }
-    }
-    const saved = await saveEventAction(formData);
-    setPending(false);
-    if (!saved.ok) {
-      setError(saved.error);
       return;
     }
-    router.push(`/calendar/${saved.data.id}`);
-    router.refresh();
+    try {
+      if (!saveAnyway) {
+        const preview = await previewEventAction(formData);
+        if (!preview.ok) {
+          setPending(false);
+          setError(preview.error);
+          return;
+        }
+        if (preview.data.warnings.length > 0) {
+          setWarnings(preview.data.warnings);
+          setPending(false);
+          return;
+        }
+      }
+      const saved = await saveEventAction(formData);
+      setPending(false);
+      if (!saved.ok) {
+        setError(saved.error);
+        return;
+      }
+      void runSync();
+      router.push(`/calendar/${saved.data.id}`);
+      router.refresh();
+    } catch (error) {
+      try {
+        await saveOnPhone(formData, saveAnyway);
+      } catch (localError) {
+        setPending(false);
+        setError(localError instanceof Error ? localError.message : "Could not save on this phone.");
+      }
+    }
   }
 
   const showScope = role === "ADMIN" || role === "SECTION_PRESBYTERY";
@@ -255,6 +292,9 @@ export function EventForm({
             Save anyway
           </Button>
         </div>
+      )}
+      {savedOnPhone && (
+        <p className="page-copy" role="status">Saved on this phone. It will sync when you are online.</p>
       )}
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
       {warnings.length === 0 && (

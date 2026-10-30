@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { actingRoleChoices, assertCanManage, churchRepChurchIds, homeChurchId } from "@/domain/activity-access";
 import { AUDIENCE_OPTIONS } from "@/domain/activity-access";
 import { AppError } from "@/domain/errors";
@@ -9,6 +8,7 @@ import { isOpenClash } from "@/domain/conflict-view";
 import type { Activity, Profile, UserRole } from "@/domain/types";
 import { acceptClashFormAction } from "../actions";
 import { EventForm, type EventFormValues } from "../_components/EventForm";
+import { LocalEventScreen } from "../_components/LocalEventScreen";
 import { RemoveEventButton } from "../_components/RemoveEventButton";
 
 export const metadata = { title: "Event — West Section MIS" };
@@ -16,19 +16,33 @@ export const metadata = { title: "Event — West Section MIS" };
 export default async function EventPage({ params }: { params: { id: string } }) {
   const actor = await requireProfile();
   const services = await createServices(actor);
-  let detail;
-  try {
-    detail = await services.activities.get(params.id);
-  } catch (error) {
-    if (error instanceof AppError && error.code === "NOT_FOUND") notFound();
-    throw error;
-  }
-  const { activity, creator, marks, canManage } = detail;
   const [churchList, ministryList] = await Promise.all([
     services.churches.list(true),
     services.ministries.listAll(),
   ]);
   const home = homeChurchId(actor);
+  const repChurchIds = churchRepChurchIds(actor);
+  const ownMinistryId = actor.roles.find((role) => role.role === "SECTION_MINISTRY_REP")?.ministryId ?? null;
+  let detail;
+  try {
+    detail = await services.activities.get(params.id);
+  } catch (error) {
+    if (error instanceof AppError && error.code === "NOT_FOUND") {
+      return (
+        <LocalEventScreen
+          id={params.id}
+          roles={actingRoleChoices(actor)}
+          homeChurchId={home}
+          repChurchIds={repChurchIds}
+          ownMinistryId={ownMinistryId}
+          churches={churchList.map((church) => ({ id: church.id, name: church.name, isActive: church.isActive }))}
+          ministries={ministryList.map((ministry) => ({ id: ministry.id, name: ministry.name }))}
+        />
+      );
+    }
+    throw error;
+  }
+  const { activity, creator, marks, canManage } = detail;
   const open = marks.filter((mark) => isOpenClash(mark) && mark.eventId === activity.id);
 
   return (
@@ -78,8 +92,8 @@ export default async function EventPage({ params }: { params: { id: string } }) 
           values={toValues(activity, roleFor(actor, activity))}
           roles={actingRoleChoices(actor)}
           homeChurchId={home}
-          repChurchIds={churchRepChurchIds(actor)}
-          ownMinistryId={actor.roles.find((role) => role.role === "SECTION_MINISTRY_REP")?.ministryId ?? null}
+          repChurchIds={repChurchIds}
+          ownMinistryId={ownMinistryId}
           churches={churchList.map((church) => ({ id: church.id, name: church.name, isActive: church.isActive }))}
           ministries={ministryList.map((ministry) => ({ id: ministry.id, name: ministry.name }))}
         />

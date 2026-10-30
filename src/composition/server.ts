@@ -21,6 +21,7 @@ import { ChurchService } from "@/services/church.service";
 import { ConflictService } from "@/services/conflict.service";
 import { CountService } from "@/services/count.service";
 import { NotificationService } from "@/services/notification.service";
+import { SyncService } from "@/services/sync.service";
 
 function asTyped(client: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createAdminClient>): TypedSupabaseClient {
   return client as unknown as TypedSupabaseClient;
@@ -66,12 +67,14 @@ export async function createServices(actor: Profile) {
   const conflictRows = new SupabaseConflictRepository(adminDb);
   const notifications = new SupabaseNotificationRepository(userDb, adminDb);
   const conflicts = new ConflictService(activities, conflictRows, adminProfiles, adminChurches, notifications);
+  const activityService = new ActivityService(actor, activities, churchRepo, ministries, adminProfiles, conflicts, auditWrite);
 
   return {
     churches: new ChurchService(actor, churchRepo, userProfiles, auditWrite, userDb),
     counts: new CountService(actor, counts, ministries, auditWrite),
     admin: new AdminService(actor, adminProfiles, churchRepo, ministries, auditWrite, adminDb),
-    activities: new ActivityService(actor, activities, churchRepo, ministries, adminProfiles, conflicts, auditWrite),
+    activities: activityService,
+    sync: new SyncService(actor, activities, activityService),
     conflicts,
     notifications: new NotificationService(notifications),
     ministries,

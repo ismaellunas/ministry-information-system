@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { actingRoleChoices, churchRepChurchIds, homeChurchId } from "@/domain/activity-access";
 import { todayManila } from "@/domain/time";
 import { createServices, requireProfile } from "@/composition/server";
@@ -23,6 +24,7 @@ export default async function NewEventPage() {
   const home = homeChurchId(actor);
   const ministryId = actor.roles.find((item) => item.role === "SECTION_MINISTRY_REP")?.ministryId ?? null;
   const values: EventFormValues = {
+    id: randomUUID(),
     title: "",
     description: "",
     location: "",

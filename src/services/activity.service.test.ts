@@ -90,4 +90,32 @@ describe("ActivityService.save", () => {
       "service"
     );
   });
+
+  it("inserts a client UUID when the row does not exist yet", async () => {
+    const insert = vi.fn(async (row: ActivityWrite) => saved(row));
+    const activities = {
+      findById: vi.fn(async () => null),
+      insert,
+    } as unknown as ActivityRepository;
+    const service = new ActivityService(
+      actor,
+      activities,
+      { findById: async () => ({ id: "church-a", isActive: true, name: "GEWCI" }) } as never,
+      { listAll: async () => [] } as never,
+      { findById: async () => null } as never,
+      { evaluateAndNotify: async () => undefined } as never,
+      { record: async () => undefined } as never
+    );
+    const id = "8102f140-ad20-4614-aa10-6cf1bdcd29bc";
+    await service.save({
+      id,
+      title: "Private elders",
+      isAllDay: false,
+      startAt: "2026-10-30T09:15",
+      endAt: "2026-10-30T09:45",
+      scope: "SECTIONAL",
+      actingRole: "ADMIN",
+    });
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ id }), "user");
+  });
 });

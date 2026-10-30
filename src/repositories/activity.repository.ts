@@ -31,4 +31,9 @@ export interface ActivityRepository {
   softDelete(id: string, expectedVersion: number, access?: ActivityWriteAccess): Promise<Activity>;
   /** Service role. Active rows whose time overlaps the half-open range. */
   listOverlapping(range: { start: Date; end: Date }): Promise<Activity[]>;
+  /**
+   * User JWT, including tombstones.
+   * Incremental pulls pass updatedSince. The first pull passes the window instead.
+   */
+  listForPull(query: { updatedSince: string | null; start: Date | null; end: Date | null }): Promise<Activity[]>;
 }
