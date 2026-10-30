@@ -37,6 +37,9 @@ export interface Ministry {
 export interface Church {
   id: string;
   name: string;
+  pastorFirstName: string | null;
+  pastorLastName: string | null;
+  /** Display name from first + last. */
   pastorName: string | null;
   pastorPhone: string | null;
   address: string | null;
@@ -98,6 +101,8 @@ export interface RoleAssignment {
   churchId: string | null;
   ministryId: number | null;
 }
+
+export type PresbyteryHat = "church" | "section";
 
 /** The acting identity for a single request/mutation. */
 export interface Actor {

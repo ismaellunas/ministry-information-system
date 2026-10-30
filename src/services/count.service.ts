@@ -56,7 +56,7 @@ export class CountService {
     if (!this.canReadSummary()) {
       throw new AppError("FORBIDDEN", "You cannot view the section membership summary.");
     }
-    const ministries = (await this.ministries.listAll()).filter((item) => item.tracksMembership);
+    const ministries = this.visibleSummaryMinistries(await this.ministries.listAll());
     const rows = await this.counts.summary();
     return { ministries, rows };
   }
@@ -81,5 +81,19 @@ export class CountService {
         role.role === "SECTION_PRESBYTERY" ||
         role.role === "SECTION_MINISTRY_REP"
     );
+  }
+
+  private visibleSummaryMinistries(all: Ministry[]): Ministry[] {
+    const tracking = all.filter((item) => item.tracksMembership);
+    const seesAll = this.actor.roles.some(
+      (role) => role.role === "ADMIN" || role.role === "SECTION_PRESBYTERY"
+    );
+    if (seesAll) return tracking;
+    const own = new Set(
+      this.actor.roles
+        .filter((role) => role.role === "SECTION_MINISTRY_REP")
+        .map((role) => role.ministryId)
+    );
+    return tracking.filter((item) => own.has(item.id));
   }
 }

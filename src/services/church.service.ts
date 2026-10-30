@@ -1,3 +1,14 @@
+import {
+  canonicalMapPinUrl,
+  encodePastorName,
+  extractGoogleMapsPin,
+  isShortMapsUrl,
+  parseAddress,
+  parseFacebookPageUrl,
+  parseGoogleMapsUrl,
+  parsePastorNames,
+  parsePhone,
+} from "@/domain/directory";
 import { AppError } from "@/domain/errors";
 import type { Church, Profile } from "@/domain/types";
 import type { AuditRepository } from "@/repositories/audit.repository";
@@ -33,6 +44,8 @@ export class ChurchService {
     if (!trimmed) throw new AppError("VALIDATION", "Church name is required.");
     const church = await this.churches.create({
       name: trimmed,
+      pastorFirstName: null,
+      pastorLastName: null,
       pastorName: null,
       pastorPhone: null,
       address: null,
@@ -74,7 +87,7 @@ export class ChurchService {
     if (!this.canEditDirectory(church.id)) {
       throw new AppError("FORBIDDEN", "You cannot edit this church's directory.");
     }
-    const patch = sanitizeDirectory(data);
+    const patch = await sanitizeDirectory(data);
     const updated = this.isAdmin()
       ? await this.churches.adminUpdate(id, patch)
       : await this.churches.repUpdate(id, patch);
@@ -121,19 +134,58 @@ export class ChurchService {
   }
 }
 
-function sanitizeDirectory(data: ChurchRepUpdateFields): ChurchRepUpdateFields {
-  const blank = (value: string | null | undefined) => {
-    if (value === undefined) return undefined;
-    const trimmed = value?.trim() ?? "";
-    return trimmed.length === 0 ? null : trimmed;
-  };
+async function sanitizeDirectory(data: ChurchRepUpdateFields): Promise<ChurchRepUpdateFields> {
+  const names =
+    data.pastorFirstName !== undefined || data.pastorLastName !== undefined
+      ? parsePastorNames(data.pastorFirstName ?? "", data.pastorLastName ?? "")
+      : undefined;
   return {
-    pastorName: blank(data.pastorName),
-    pastorPhone: blank(data.pastorPhone),
-    address: blank(data.address),
-    facebookPageUrl: blank(data.facebookPageUrl),
-    hotlineNumber: blank(data.hotlineNumber),
-    mapPinUrl: blank(data.mapPinUrl),
+    pastorFirstName: names?.firstName,
+    pastorLastName: names?.lastName,
+    pastorName: names
+      ? encodePastorName(names.firstName, names.lastName)
+      : undefined,
+    pastorPhone:
+      data.pastorPhone === undefined ? undefined : parsePhone(data.pastorPhone ?? "", "Pastor phone"),
+    address: data.address === undefined ? undefined : parseAddress(data.address ?? ""),
+    facebookPageUrl:
+      data.facebookPageUrl === undefined
+        ? undefined
+        : parseFacebookPageUrl(data.facebookPageUrl ?? ""),
+    hotlineNumber:
+      data.hotlineNumber === undefined ? undefined : parsePhone(data.hotlineNumber ?? "", "Hotline"),
+    mapPinUrl: data.mapPinUrl === undefined ? undefined : await resolveMapPin(data.mapPinUrl ?? ""),
     logoUrl: data.logoUrl,
   };
+}
+
+async function resolveMapPin(value: string): Promise<string | null> {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const url = parseGoogleMapsUrl(trimmed);
+  const direct = extractGoogleMapsPin(url.toString());
+  if (direct) return canonicalMapPinUrl(direct.lat, direct.lng);
+  if (!isShortMapsUrl(url)) {
+    return url.toString();
+  }
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: { "User-Agent": "WestSectionMIS/1.0" },
+    });
+    clearTimeout(timer);
+    const finalUrl = response.url || url.toString();
+    const pin = extractGoogleMapsPin(finalUrl);
+    if (pin) return canonicalMapPinUrl(pin.lat, pin.lng);
+    return finalUrl;
+  } catch {
+    throw new AppError(
+      "VALIDATION",
+      "Could not read that Google Maps link. Open the pin and paste the full maps.google.com URL."
+    );
+  }
 }

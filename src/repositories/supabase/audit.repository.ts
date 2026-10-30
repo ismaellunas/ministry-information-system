@@ -1,5 +1,7 @@
+import { sanitizeAuditDetail } from "@/domain/audit";
 import { AppError } from "@/domain/errors";
 import type { AuditEntry } from "@/domain/types";
+import type { Database } from "@/lib/supabase/database.types";
 import type { AuditRepository } from "@/repositories/audit.repository";
 import { toAudit } from "./mappers";
 import type { TypedSupabaseClient } from "./client";
@@ -19,7 +21,7 @@ export class SupabaseAuditRepository implements AuditRepository {
       action,
       entity,
       entity_id: entityId,
-      detail,
+      detail: sanitizeAuditDetail(detail) as Database["public"]["Tables"]["audit_log"]["Insert"]["detail"],
     });
     if (error) throw new AppError("DB", error.message);
   }

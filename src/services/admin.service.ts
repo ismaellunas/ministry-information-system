@@ -72,7 +72,7 @@ export class AdminService {
 
     const ministries = await this.ministries.listAll();
     const churches = await this.churches.listAll(true);
-    await this.assertAssignable(input.roles, [], ministries, churches);
+    await this.assertAssignable(input.roles, ministries, churches);
 
     const temporaryPassword = generateTemporaryPassword();
     const created = await this.adminAuth.auth.admin.createUser({
@@ -134,7 +134,7 @@ export class AdminService {
     const ministries = await this.ministries.listAll();
     const churches = await this.churches.listAll(true);
     const next = [...toAssignments(profile), assignment];
-    await this.assertAssignable(next, [], ministries, churches, profileId);
+    await this.assertAssignable(next, ministries, churches, profileId);
     await this.profiles.addRole(profileId, assignment.role, assignment.churchId, assignment.ministryId);
     await this.audit.record(this.actor.id, "user.role.add", "profile", profileId, {
       role: assignment.role,
@@ -227,7 +227,6 @@ export class AdminService {
 
   private async assertAssignable(
     next: RoleAssignment[],
-    _ignored: unknown,
     ministries: Ministry[],
     churches: Church[],
     exceptProfileId?: string
@@ -293,5 +292,3 @@ function toAssignments(profile: Profile): RoleAssignment[] {
     ministryId: role.ministryId,
   }));
 }
-
-export type { UserRole };

@@ -6,7 +6,10 @@ export type Database = {
     Tables: {
       churches: {
         Row: {
-          id: string; name: string; pastor_name: string | null;
+          id: string; name: string;
+          pastor_name: string | null;
+          pastor_first_name?: string | null;
+          pastor_last_name?: string | null;
           pastor_phone: string | null; address: string | null;
           facebook_page_url: string | null; hotline_number: string | null;
           map_pin_url: string | null; logo_url: string | null;
@@ -14,11 +17,13 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["churches"]["Row"], "id" | "created_at" | "updated_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["churches"]["Insert"]>;
+        Relationships: [];
       };
       ministries: {
         Row: { id: number; code: string; name: string; tracks_membership: boolean; allows_churchless_rep: boolean };
         Insert: never;
         Update: never;
+        Relationships: [];
       };
       profiles: {
         Row: {
@@ -28,6 +33,7 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["profiles"]["Row"], "created_at" | "updated_at">;
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
       };
       profile_roles: {
         Row: {
@@ -37,6 +43,7 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["profile_roles"]["Row"], "id" | "created_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["profile_roles"]["Insert"]>;
+        Relationships: [];
       };
       members: {
         Row: {
@@ -47,14 +54,16 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["members"]["Row"], "version" | "created_at" | "updated_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["members"]["Insert"]>;
+        Relationships: [];
       };
       church_department_counts: {
         Row: {
           church_id: string; ministry_id: number; member_count: number;
           roster_complete: boolean; updated_by: string | null; updated_at: string;
         };
-        Insert: Database["public"]["Tables"]["church_department_counts"]["Row"];
+        Insert: Omit<Database["public"]["Tables"]["church_department_counts"]["Row"], "updated_at"> & { updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["church_department_counts"]["Row"]>;
+        Relationships: [];
       };
       activities: {
         Row: {
@@ -70,6 +79,7 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["activities"]["Row"], "version" | "created_at" | "updated_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["activities"]["Insert"]>;
+        Relationships: [];
       };
       activity_conflicts: {
         Row: {
@@ -79,6 +89,7 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["activity_conflicts"]["Row"], "id" | "created_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["activity_conflicts"]["Insert"]>;
+        Relationships: [];
       };
       notifications: {
         Row: {
@@ -88,6 +99,7 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["notifications"]["Row"], "id" | "created_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
+        Relationships: [];
       };
       push_subscriptions: {
         Row: {
@@ -96,6 +108,7 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["push_subscriptions"]["Row"], "id" | "created_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Insert"]>;
+        Relationships: [];
       };
       audit_log: {
         Row: {
@@ -105,6 +118,7 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["audit_log"]["Row"], "id" | "created_at">;
         Update: never;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
@@ -118,6 +132,10 @@ export type Database = {
       church_summary: {
         Args: Record<string, never>;
         Returns: { church_id: string; church_name: string; ministry_id: number; member_count: number | null; reported: boolean; updated_at: string | null }[];
+      };
+      activities_overlapping: {
+        Args: { p_start: string; p_end: string };
+        Returns: Database["public"]["Tables"]["activities"]["Row"][];
       };
     };
     Enums: {

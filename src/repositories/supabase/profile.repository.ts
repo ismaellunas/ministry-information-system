@@ -1,5 +1,6 @@
 import { AppError } from "@/domain/errors";
 import type { Profile, ProfileRole, UserRole } from "@/domain/types";
+import type { Database } from "@/lib/supabase/database.types";
 import type { NewProfile, ProfileRepository } from "@/repositories/profile.repository";
 import { toProfile, toRole } from "./mappers";
 import type { TypedSupabaseClient } from "./client";
@@ -51,7 +52,7 @@ export class SupabaseProfileRepository implements ProfileRepository {
     id: string,
     data: Partial<Pick<Profile, "firstName" | "lastName" | "phoneNumber">>
   ): Promise<Profile> {
-    const patch: Record<string, unknown> = {};
+    const patch: Database["public"]["Tables"]["profiles"]["Update"] = {};
     if (data.firstName !== undefined) patch.first_name = data.firstName;
     if (data.lastName !== undefined) patch.last_name = data.lastName;
     if (data.phoneNumber !== undefined) patch.phone_number = data.phoneNumber;
@@ -118,7 +119,7 @@ export class SupabaseProfileRepository implements ProfileRepository {
       .eq("role", "CHURCH_REP")
       .eq("church_id", churchId);
     if (error) throw new AppError("DB", error.message);
-    const ids = [...new Set((roles ?? []).map((row) => row.profile_id))];
+    const ids = Array.from(new Set((roles ?? []).map((row) => row.profile_id)));
     if (ids.length === 0) return 0;
     const { data: profiles, error: profileError } = await this.db
       .from("profiles")

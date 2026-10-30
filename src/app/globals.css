@@ -27,8 +27,17 @@
     --radius: 10px;
   }
 
-  * {
+  *:not(option):not(optgroup) {
     @apply border-border;
+  }
+
+  /* Tailwind preflight sets a solid border on every element. On option that
+     makes Chrome draw the menu as a tiny list far from the control. */
+  option,
+  optgroup {
+    border-width: revert;
+    border-style: revert;
+    border-color: revert;
   }
 
   body {

@@ -1,0 +1,16 @@
+---
+description: Every browseable list of records must include search
+alwaysApply: true
+---
+
+# List search
+
+Hard requirement. Any page or section whose job is listing churches, pastors, users, audit rows, or other records must include search.
+
+- Use `SearchableList` from `src/core/ui/searchable-list.tsx`. Do not invent a second search pattern.
+- Put the field above the list. Filter as the user types. Do not require a submit button.
+- Match case-insensitively across the fields the row shows (name, pastor, phone, address, email, roles, action).
+- Empty list: `noneYet`. No matches: `noneFound(query)`.
+- Phone: full-width `h-11` input (the shared `Input`), 16px text, 44px tap target. Do not hide search behind hover.
+- Skip search on nav menus, single-record screens, and short exception widgets of a handful of items (for example “never signed in”).
+- Calendar, inbox, and member roster lists must ship with search when those screens are built.

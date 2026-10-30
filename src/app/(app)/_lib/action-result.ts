@@ -10,7 +10,7 @@ export function ok<T>(data?: T): ActionResult<T | undefined> {
   return { ok: true, data };
 }
 
-export function fail(error: unknown): ActionResult<never> {
+export function fail(error: unknown): { ok: false; error: string } {
   if (error instanceof AppError) {
     return { ok: false, error: error.message };
   }

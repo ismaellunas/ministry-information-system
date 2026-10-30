@@ -21,7 +21,9 @@ const NAV = [
 ];
 
 function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  if (href === "/") return pathname === "/";
+  if (href === "/more") return pathname.startsWith("/more") || pathname.startsWith("/admin");
+  return pathname.startsWith(href);
 }
 
 export function AppShell({ profile, children }: AppShellProps) {

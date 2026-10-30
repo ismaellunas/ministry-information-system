@@ -7,6 +7,7 @@ import { Button } from "@/core/ui/button";
 import { Input } from "@/core/ui/input";
 import { Label } from "@/core/ui/label";
 import { Card, CardContent } from "@/core/ui/card";
+import { completePasswordChangeAction } from "../actions";
 
 export function ChangePasswordForm() {
   const router = useRouter();
@@ -22,13 +23,28 @@ export function ChangePasswordForm() {
     if (password !== confirm) { setError("Passwords do not match."); return; }
 
     setLoading(true);
-    const supabase = createClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    try {
+      const supabase = createClient();
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      const alreadySet = updateError?.message.toLowerCase().includes("different from the old password");
+      if (updateError && !alreadySet) {
+        setError(updateError.message);
+        return;
+      }
 
-    if (updateError) { setError(updateError.message); setLoading(false); return; }
+      const flagged = await completePasswordChangeAction();
+      if (!flagged.ok) {
+        setError(flagged.error);
+        return;
+      }
 
-    router.push("/");
-    router.refresh();
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not set the password.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

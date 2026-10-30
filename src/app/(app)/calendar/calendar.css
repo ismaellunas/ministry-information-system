@@ -1,0 +1,36 @@
+.west-calendar .rbc-calendar {
+  height: 100%;
+  font-family: inherit;
+}
+.west-calendar .rbc-toolbar button {
+  min-height: 44px;
+  border-radius: 8px;
+}
+.west-calendar .rbc-event {
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.west-calendar .rbc-event.event-clash {
+  background: #fb2c36;
+  color: #fff;
+}
+.west-calendar .rbc-event.event-sectional {
+  background: #465fff;
+  color: #fff;
+}
+.west-calendar .rbc-event.event-ministry {
+  background: #252dae;
+  color: #fff;
+}
+.west-calendar .rbc-event.event-own {
+  background: #12b76a;
+  color: #fff;
+}
+.west-calendar .rbc-event.event-public {
+  background: #9cb9ff;
+  color: #101828;
+}
+.west-calendar .rbc-today {
+  background: #ecf3ff;
+}

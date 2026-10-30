@@ -3,6 +3,8 @@ import type { Church } from "@/domain/types";
 export type ChurchRepUpdateFields = Partial<
   Pick<
     Church,
+    | "pastorFirstName"
+    | "pastorLastName"
     | "pastorName"
     | "pastorPhone"
     | "address"

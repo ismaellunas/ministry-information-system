@@ -8,6 +8,9 @@ import { getServerEnv } from "@/lib/env";
  */
 export async function POST(request: Request) {
   const { CRON_SECRET } = getServerEnv();
+  if (!CRON_SECRET) {
+    return NextResponse.json({ error: "Cron is not configured." }, { status: 503 });
+  }
   const auth = request.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
 

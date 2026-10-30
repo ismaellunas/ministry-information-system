@@ -1,5 +1,5 @@
 // Manila civil-date helpers — pure, zero framework imports.
-import { toZonedTime, fromZonedTime, format as tzFormat } from "date-fns-tz";
+import { toZonedTime, fromZonedTime, format as tzFormat, formatInTimeZone } from "date-fns-tz";
 import { addDays, startOfDay } from "date-fns";
 
 export const MANILA_TZ = "Asia/Manila";
@@ -51,4 +51,16 @@ export function todayManila(): string {
   return tzFormat(toZonedTime(new Date(), MANILA_TZ), "yyyy-MM-dd", {
     timeZone: MANILA_TZ,
   });
+}
+
+/** Format a UTC instant as Manila wall time. */
+export function formatManila(date: Date, pattern: string): string {
+  return formatInTimeZone(date, MANILA_TZ, pattern);
+}
+
+/** A Date whose local clock matches Manila, for calendar grids. */
+export function manilaWallDate(utc: Date): Date {
+  const text = formatInTimeZone(utc, MANILA_TZ, "yyyy-MM-dd-HH-mm");
+  const [year, month, day, hour, minute] = text.split("-").map(Number);
+  return new Date(year, month - 1, day, hour, minute, 0, 0);
 }

@@ -15,11 +15,12 @@ const publicSchema = z.object({
 
 const serverSchema = publicSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
-  VAPID_PRIVATE_KEY: z.string().min(1, "VAPID_PRIVATE_KEY is required"),
-  VAPID_SUBJECT: z.string().min(1, "VAPID_SUBJECT is required"),
-  CRON_SECRET: z.string().min(1, "CRON_SECRET is required"),
-  RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().email().optional(),
+  // Push, cron, and mail are unused until later phases.
+  VAPID_PRIVATE_KEY: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  VAPID_SUBJECT: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  CRON_SECRET: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  RESEND_API_KEY: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  EMAIL_FROM: z.preprocess(blankToUndefined, z.string().email("EMAIL_FROM must be a valid email").optional()),
 });
 
 /**

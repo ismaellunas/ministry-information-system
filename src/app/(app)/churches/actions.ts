@@ -2,13 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { createServices, requireProfile } from "@/composition/server";
+import {
+  churchIdSchema,
+  churchNameSchema,
+  directoryFieldsSchema,
+  parseInput,
+} from "@/domain/schemas";
 import { fail, ok, type ActionResult } from "../_lib/action-result";
 
 export async function createChurchAction(formData: FormData): Promise<ActionResult<{ id: string }>> {
   try {
     const actor = await requireProfile();
     const { churches } = await createServices(actor);
-    const church = await churches.create(String(formData.get("name") ?? ""));
+    const church = await churches.create(parseInput(churchNameSchema, String(formData.get("name") ?? "")));
     revalidatePath("/churches");
     revalidatePath("/");
     return ok({ id: church.id });
@@ -21,15 +27,17 @@ export async function updateDirectoryAction(formData: FormData): Promise<ActionR
   try {
     const actor = await requireProfile();
     const { churches } = await createServices(actor);
-    const id = String(formData.get("church_id") ?? "");
-    await churches.updateDirectory(id, {
-      pastorName: String(formData.get("pastor_name") ?? ""),
+    const id = parseInput(churchIdSchema, String(formData.get("church_id") ?? ""));
+    const directory = parseInput(directoryFieldsSchema, {
+      pastorFirstName: String(formData.get("pastor_first_name") ?? ""),
+      pastorLastName: String(formData.get("pastor_last_name") ?? ""),
       pastorPhone: String(formData.get("pastor_phone") ?? ""),
       address: String(formData.get("address") ?? ""),
       facebookPageUrl: String(formData.get("facebook_page_url") ?? ""),
       hotlineNumber: String(formData.get("hotline_number") ?? ""),
       mapPinUrl: String(formData.get("map_pin_url") ?? ""),
     });
+    await churches.updateDirectory(id, directory);
     revalidatePath(`/churches/${id}`);
     revalidatePath("/churches");
     return ok();
@@ -42,8 +50,8 @@ export async function renameChurchAction(formData: FormData): Promise<ActionResu
   try {
     const actor = await requireProfile();
     const { churches } = await createServices(actor);
-    const id = String(formData.get("church_id") ?? "");
-    await churches.rename(id, String(formData.get("name") ?? ""));
+    const id = parseInput(churchIdSchema, String(formData.get("church_id") ?? ""));
+    await churches.rename(id, parseInput(churchNameSchema, String(formData.get("name") ?? "")));
     revalidatePath(`/churches/${id}`);
     revalidatePath("/churches");
     return ok();
@@ -56,7 +64,7 @@ export async function closeChurchAction(formData: FormData): Promise<ActionResul
   try {
     const actor = await requireProfile();
     const { churches } = await createServices(actor);
-    const id = String(formData.get("church_id") ?? "");
+    const id = parseInput(churchIdSchema, String(formData.get("church_id") ?? ""));
     await churches.close(id);
     revalidatePath(`/churches/${id}`);
     revalidatePath("/churches");
@@ -71,7 +79,7 @@ export async function uploadLogoAction(formData: FormData): Promise<ActionResult
   try {
     const actor = await requireProfile();
     const { churches } = await createServices(actor);
-    const id = String(formData.get("church_id") ?? "");
+    const id = parseInput(churchIdSchema, String(formData.get("church_id") ?? ""));
     const file = formData.get("logo");
     if (!(file instanceof File) || file.size === 0) {
       return { ok: false, error: "Choose a logo image." };

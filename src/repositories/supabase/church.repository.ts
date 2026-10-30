@@ -1,5 +1,6 @@
 import { AppError } from "@/domain/errors";
 import type { Church } from "@/domain/types";
+import type { Database } from "@/lib/supabase/database.types";
 import type { ChurchRepUpdateFields, ChurchRepository } from "@/repositories/church.repository";
 import { toChurch } from "./mappers";
 import type { TypedSupabaseClient } from "./client";
@@ -45,7 +46,7 @@ export class SupabaseChurchRepository implements ChurchRepository {
   }
 
   async adminUpdate(id: string, data: Partial<Omit<Church, "id">>): Promise<Church> {
-    const patch: Record<string, unknown> = {};
+    const patch: Database["public"]["Tables"]["churches"]["Update"] = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.pastorName !== undefined) patch.pastor_name = data.pastorName;
     if (data.pastorPhone !== undefined) patch.pastor_phone = data.pastorPhone;
@@ -64,20 +65,15 @@ export class SupabaseChurchRepository implements ChurchRepository {
   }
 
   async repUpdate(id: string, data: ChurchRepUpdateFields): Promise<Church> {
-    const { data: row, error } = await this.db
-      .from("churches")
-      .update({
-        pastor_name: data.pastorName,
-        pastor_phone: data.pastorPhone,
-        address: data.address,
-        facebook_page_url: data.facebookPageUrl,
-        hotline_number: data.hotlineNumber,
-        map_pin_url: data.mapPinUrl,
-        logo_url: data.logoUrl,
-      })
-      .eq("id", id)
-      .select("*")
-      .single();
+    const patch: Database["public"]["Tables"]["churches"]["Update"] = {};
+    if (data.pastorName !== undefined) patch.pastor_name = data.pastorName;
+    if (data.pastorPhone !== undefined) patch.pastor_phone = data.pastorPhone;
+    if (data.address !== undefined) patch.address = data.address;
+    if (data.facebookPageUrl !== undefined) patch.facebook_page_url = data.facebookPageUrl;
+    if (data.hotlineNumber !== undefined) patch.hotline_number = data.hotlineNumber;
+    if (data.mapPinUrl !== undefined) patch.map_pin_url = data.mapPinUrl;
+    if (data.logoUrl !== undefined) patch.logo_url = data.logoUrl;
+    const { data: row, error } = await this.db.from("churches").update(patch).eq("id", id).select("*").single();
     if (error) throw new AppError("DB", error.message);
     return toChurch(row);
   }

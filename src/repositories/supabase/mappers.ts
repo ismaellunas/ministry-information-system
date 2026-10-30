@@ -1,5 +1,7 @@
+import { decodePastorName } from "@/domain/directory";
 import type { Database } from "@/lib/supabase/database.types";
 import type {
+  Activity,
   AuditEntry,
   Church,
   ChurchDepartmentCount,
@@ -16,13 +18,25 @@ type RoleRow = Database["public"]["Tables"]["profile_roles"]["Row"];
 type MinistryRow = Database["public"]["Tables"]["ministries"]["Row"];
 type CountRow = Database["public"]["Tables"]["church_department_counts"]["Row"];
 type AuditRow = Database["public"]["Tables"]["audit_log"]["Row"];
+type ActivityRow = Database["public"]["Tables"]["activities"]["Row"];
 type SummaryRow = Database["public"]["Functions"]["church_summary"]["Returns"][number];
 
 export function toChurch(row: ChurchRow): Church {
+  const fromColumns = {
+    firstName: row.pastor_first_name,
+    lastName: row.pastor_last_name,
+  };
+  const decoded = decodePastorName(row.pastor_name);
+  const pastorFirstName = fromColumns.firstName || decoded.firstName;
+  const pastorLastName = fromColumns.lastName || decoded.lastName;
+  const pastorName =
+    [pastorFirstName, pastorLastName].filter(Boolean).join(" ").trim() || decoded.display;
   return {
     id: row.id,
     name: row.name,
-    pastorName: row.pastor_name,
+    pastorFirstName,
+    pastorLastName,
+    pastorName: pastorName || null,
     pastorPhone: row.pastor_phone,
     address: row.address,
     facebookPageUrl: row.facebook_page_url,
@@ -84,6 +98,30 @@ export function toSummary(row: SummaryRow): ChurchSummaryRow {
     memberCount: row.member_count,
     reported: row.reported,
     updatedAt: row.updated_at,
+  };
+}
+
+export function toActivity(row: ActivityRow): Activity {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    location: row.location,
+    isAllDay: row.is_all_day,
+    scope: row.scope,
+    visibility: row.visibility,
+    churchId: row.church_id,
+    ministryId: row.ministry_id,
+    hostChurchId: row.host_church_id,
+    atOwnChurch: row.at_own_church,
+    startAt: new Date(row.start_at),
+    endAt: new Date(row.end_at),
+    deleted: row.deleted_at != null,
+    audience: row.audience,
+    createdBy: row.created_by,
+    version: row.version,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
   };
 }
 
