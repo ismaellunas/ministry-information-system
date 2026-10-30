@@ -4,6 +4,7 @@
  */
 export {
   clearLocalDatabase,
+  dropStoredEvent,
   keepMine,
   keepServer,
   listOutboxProblems,

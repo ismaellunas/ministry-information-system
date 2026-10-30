@@ -130,6 +130,14 @@ export async function queueEventSave(draft: ActivityDraft, baseVersion: number |
   void registerBackgroundSync();
 }
 
+export async function dropStoredEvent(id: string): Promise<void> {
+  const db = localDb();
+  const existing = await db.activities.get(id);
+  if (!existing || existing.deleted) return;
+  await db.activities.put({ ...existing, deleted: true, updatedAt: new Date().toISOString() });
+  emit();
+}
+
 export async function queueEventRemove(id: string, baseVersion: number): Promise<void> {
   const db = localDb();
   const now = new Date().toISOString();

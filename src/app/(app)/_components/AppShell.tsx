@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { CalendarDays, Building2, Bell, Home, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/domain/types";
+import { OfflineDirectory } from "../churches/_components/OfflineDirectory";
 import { SyncEngine, SyncStatusLine } from "./SyncEngine";
 
 interface AppShellProps {
@@ -22,25 +23,33 @@ const NAV = [
   { href: "/more", label: "More", icon: MoreHorizontal },
 ];
 
+const OFFLINE_NAV = new Set(["/calendar", "/churches"]);
+
 function NavLink({
   item,
   pathname,
   online,
+  directoryOpen,
+  onOpenDirectory,
+  onCloseDirectory,
   layout,
 }: {
   item: (typeof NAV)[number];
   pathname: string;
   online: boolean;
+  directoryOpen: boolean;
+  onOpenDirectory: () => void;
+  onCloseDirectory: () => void;
   layout: "sidebar" | "tabs";
 }) {
   const { href, label, icon: Icon } = item;
-  const active = isActive(pathname, href);
-  const calendarOnly = !online && href !== "/calendar";
+  const active = directoryOpen ? href === "/churches" : isActive(pathname, href);
+  const blocked = !online && !OFFLINE_NAV.has(href);
   const className = cn(
     layout === "sidebar"
       ? "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium"
       : "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium",
-    calendarOnly
+    blocked
       ? "text-gray-300"
       : active
         ? layout === "sidebar"
@@ -50,7 +59,7 @@ function NavLink({
           ? "text-gray-700 hover:bg-gray-100"
           : "text-gray-500"
   );
-  if (calendarOnly) {
+  if (blocked) {
     return (
       <span aria-disabled="true" className={className}>
         <Icon className="h-5 w-5" />
@@ -59,7 +68,26 @@ function NavLink({
     );
   }
   return (
-    <Link href={href} className={className}>
+    <Link
+      href={href}
+      className={className}
+      onClick={(event) => {
+        if (navigator.onLine) return;
+        if (href === "/churches") {
+          event.preventDefault();
+          if (pathname === "/churches" && !directoryOpen) return;
+          onOpenDirectory();
+          return;
+        }
+        if (href === "/calendar") {
+          onCloseDirectory();
+          if (!pathname.startsWith("/calendar")) {
+            event.preventDefault();
+            window.location.assign("/calendar");
+          }
+        }
+      }}
+    >
       <Icon className="h-5 w-5" />
       <span>{label}</span>
     </Link>
@@ -90,11 +118,17 @@ function useOnline() {
 export function AppShell({ profile, children }: AppShellProps) {
   const pathname = usePathname();
   const online = useOnline();
+  const [directoryOpen, setDirectoryOpen] = useState(false);
 
   useEffect(() => {
-    if (online || pathname.startsWith("/calendar")) return;
+    if (online) setDirectoryOpen(false);
+  }, [online]);
+
+  useEffect(() => {
+    if (online || directoryOpen) return;
+    if (pathname.startsWith("/calendar") || pathname.startsWith("/churches")) return;
     window.location.assign("/calendar");
-  }, [online, pathname]);
+  }, [online, pathname, directoryOpen]);
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 md:flex-row">
@@ -103,7 +137,16 @@ export function AppShell({ profile, children }: AppShellProps) {
         <div className="px-5 py-5 text-base font-semibold text-gray-900">West MIS</div>
         <nav className="flex flex-col gap-1 px-3">
           {NAV.map((item) => (
-            <NavLink key={item.href} item={item} pathname={pathname} online={online} layout="sidebar" />
+            <NavLink
+              key={item.href}
+              item={item}
+              pathname={pathname}
+              online={online}
+              directoryOpen={directoryOpen}
+              onOpenDirectory={() => setDirectoryOpen(true)}
+              onCloseDirectory={() => setDirectoryOpen(false)}
+              layout="sidebar"
+            />
           ))}
         </nav>
         <p className="mt-auto px-5 py-4 text-sm text-gray-500">
@@ -125,13 +168,22 @@ export function AppShell({ profile, children }: AppShellProps) {
         </header>
 
         <main className="mx-auto w-full max-w-screen-lg flex-1 px-4 py-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:px-6 md:pb-8">
-          {children}
+          {directoryOpen ? <OfflineDirectory /> : children}
         </main>
 
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
           <div className="flex">
             {NAV.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} online={online} layout="tabs" />
+              <NavLink
+                key={item.href}
+                item={item}
+                pathname={pathname}
+                online={online}
+                directoryOpen={directoryOpen}
+                onOpenDirectory={() => setDirectoryOpen(true)}
+                onCloseDirectory={() => setDirectoryOpen(false)}
+                layout="tabs"
+              />
             ))}
           </div>
         </nav>

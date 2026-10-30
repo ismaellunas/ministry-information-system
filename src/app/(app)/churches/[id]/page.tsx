@@ -3,6 +3,7 @@ import { AppError } from "@/domain/errors";
 import { createServices, requireProfile } from "@/composition/server";
 import { CountsEditor } from "../../_components/CountsEditor";
 import { DirectoryForm } from "../_components/ChurchForms";
+import { RememberChurch } from "../_components/RememberChurch";
 
 export const metadata = { title: "Church — West Section MIS" };
 
@@ -26,6 +27,7 @@ export default async function ChurchDetailPage({ params }: { params: { id: strin
 
   return (
     <div className="space-y-6">
+      <RememberChurch church={church} />
       <div>
         <h1 className="page-title">{church.name}</h1>
         {!church.isActive && <p className="page-copy mt-1">Closed — listed for the record.</p>}

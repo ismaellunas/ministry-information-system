@@ -59,16 +59,15 @@ export class SupabaseActivityRepository implements ActivityRepository {
 
   async softDelete(id: string, expectedVersion: number, access: ActivityWriteAccess = "user") {
     const client = access === "service" ? await this.serviceClientForDelete(id) : this.db;
-    const { data, error } = await client
+    // A removed event is hidden by the read policy. Selecting it back makes Postgres
+    // reject the update as a row-level security failure, so the delete never lands.
+    const { error, count } = await client
       .from("activities")
-      .update({ deleted_at: new Date().toISOString() })
+      .update({ deleted_at: new Date().toISOString() }, { count: "exact" })
       .eq("id", id)
-      .eq("version", expectedVersion)
-      .select("*")
-      .maybeSingle();
+      .eq("version", expectedVersion);
     if (error) throw new AppError("DB", error.message);
-    if (!data) throw new AppError("VERSION", "This event changed. Reload it and try again.");
-    return toActivity(data);
+    if (!count) throw new AppError("VERSION", "This event changed. Reload it and try again.");
   }
 
   private dbFor(access: ActivityWriteAccess, row: Pick<ActivityWrite, "scope" | "visibility">) {

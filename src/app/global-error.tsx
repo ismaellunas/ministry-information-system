@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, type CSSProperties } from "react";
-import { isConnectionError } from "./offline-fallback";
+import { isConnectionError, staysOpenOffline } from "./offline-fallback";
 
 export default function GlobalError({
   error,
@@ -12,7 +12,7 @@ export default function GlobalError({
 }) {
   const offline = isConnectionError(error);
   useEffect(() => {
-    if (!offline || window.location.pathname.startsWith("/calendar")) return;
+    if (!offline || staysOpenOffline(window.location.pathname)) return;
     window.location.assign("/calendar");
   }, [offline]);
   if (offline) {

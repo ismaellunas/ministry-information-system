@@ -28,7 +28,7 @@ export interface ActivityRepository {
   listVisible(range: { start: Date; end: Date }): Promise<Activity[]>;
   insert(row: ActivityWrite, access?: ActivityWriteAccess): Promise<Activity>;
   update(row: ActivityWrite, expectedVersion: number, access?: ActivityWriteAccess): Promise<Activity>;
-  softDelete(id: string, expectedVersion: number, access?: ActivityWriteAccess): Promise<Activity>;
+  softDelete(id: string, expectedVersion: number, access?: ActivityWriteAccess): Promise<void>;
   /** Service role. Active rows whose time overlaps the half-open range. */
   listOverlapping(range: { start: Date; end: Date }): Promise<Activity[]>;
   /**

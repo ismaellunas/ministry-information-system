@@ -1,11 +1,30 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Church } from "@/domain/types";
 import { searchableText } from "@/domain/search";
 import { SearchableList } from "@/core/ui/searchable-list";
+import { rememberDirectory } from "@/lib/directory-cache";
 
 export function ChurchList({ churches }: { churches: Church[] }) {
+  const [opened, setOpened] = useState<Church | null>(null);
+
+  useEffect(() => {
+    rememberDirectory(churches);
+  }, [churches]);
+
+  if (opened) {
+    return (
+      <div className="space-y-4">
+        <button type="button" className="min-h-11 text-sm font-medium text-brand-500" onClick={() => setOpened(null)}>
+          Directory
+        </button>
+        <ChurchReadView church={opened} />
+      </div>
+    );
+  }
+
   return (
     <SearchableList
       items={churches}
@@ -30,6 +49,11 @@ export function ChurchList({ churches }: { churches: Church[] }) {
         <Link
           href={`/churches/${church.id}`}
           className="block rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs"
+          onClick={(event) => {
+            if (navigator.onLine) return;
+            event.preventDefault();
+            setOpened(church);
+          }}
         >
           <div className="flex items-start gap-3">
             {church.logoUrl ? (
@@ -62,5 +86,38 @@ export function ChurchList({ churches }: { churches: Church[] }) {
         </Link>
       )}
     </SearchableList>
+  );
+}
+
+function ChurchReadView({ church }: { church: Church }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title">{church.name}</h1>
+        {!church.isActive && <p className="page-copy mt-1">Closed — listed for the record.</p>}
+      </div>
+      {church.logoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={church.logoUrl} alt="" className="h-24 w-24 rounded-2xl object-cover" />
+      )}
+      <div className="space-y-2 rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs">
+        <Row label="Pastor" value={church.pastorName} />
+        <Row label="Pastor phone" value={church.pastorPhone} />
+        <Row label="Hotline" value={church.hotlineNumber} />
+        <Row label="Address" value={church.address} multiline />
+        {church.facebookPageUrl && <p className="page-copy">Facebook page</p>}
+        {church.mapPinUrl && <p className="page-copy">Map pin</p>}
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, multiline = false }: { label: string; value: string | null; multiline?: boolean }) {
+  if (!value) return null;
+  return (
+    <div>
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className={`text-sm text-gray-900${multiline ? " whitespace-pre-line" : ""}`}>{value}</p>
+    </div>
   );
 }

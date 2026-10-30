@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { queueEventRemove } from "@/composition/browser";
+import { dropStoredEvent, queueEventRemove } from "@/composition/browser";
 import { Button } from "@/core/ui/button";
 import { removeEventAction } from "../actions";
 
@@ -26,6 +26,7 @@ export function RemoveEventButton({ id, version }: { id: string; version: number
             setError(result.error);
             return;
           }
+          await dropStoredEvent(id);
           router.push("/calendar");
           router.refresh();
         } catch {

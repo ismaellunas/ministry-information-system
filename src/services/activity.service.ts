@@ -154,8 +154,11 @@ export class ActivityService {
       existing.visibility === "PUBLIC"
         ? "service"
         : "user";
-    const removed = await this.activities.softDelete(id, expectedVersion, access);
-    await this.afterWrite(removed, "activity.remove");
+    await this.activities.softDelete(id, expectedVersion, access);
+    await this.afterWrite(
+      { ...existing, deleted: true, version: existing.version + 1, updatedAt: new Date() },
+      "activity.remove"
+    );
   }
 
   private async afterWrite(saved: Activity, action: string) {

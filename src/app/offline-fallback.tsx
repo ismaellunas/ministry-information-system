@@ -2,6 +2,10 @@
 
 import { useEffect } from "react";
 
+export function staysOpenOffline(path: string) {
+  return path.startsWith("/calendar") || path.startsWith("/churches");
+}
+
 export function isConnectionError(error: Error): boolean {
   if (typeof navigator !== "undefined" && !navigator.onLine) return true;
   const message = `${error.name} ${error.message}`.toLowerCase();
@@ -18,7 +22,7 @@ export function isConnectionError(error: Error): boolean {
 export function OfflineFallback({ error, reset }: { error?: Error; reset?: () => void }) {
   const offline = error ? isConnectionError(error) : typeof navigator !== "undefined" && !navigator.onLine;
   useEffect(() => {
-    if (!offline || window.location.pathname.startsWith("/calendar")) return;
+    if (!offline || staysOpenOffline(window.location.pathname)) return;
     window.location.assign("/calendar");
   }, [offline]);
   if (offline) return <main className="min-h-screen bg-gray-50" />;
