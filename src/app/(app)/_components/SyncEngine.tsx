@@ -63,7 +63,6 @@ export function SyncStatusLine() {
   }, []);
 
   const parts: string[] = [];
-  if (!online) parts.push("Offline");
   if (unsent > 0) parts.push(`${unsent} unsent`);
   if (failed > 0) parts.push(`${failed} failed`);
   if (lastSync) {
@@ -73,7 +72,7 @@ export function SyncStatusLine() {
   if (parts.length === 0) return null;
 
   const text = parts.join(" · ");
-  if (failed > 0) {
+  if (failed > 0 && online) {
     return (
       <Link href="/more" className="flex min-h-11 max-w-[11rem] items-center truncate text-xs text-gray-500 sm:max-w-none">
         {text}

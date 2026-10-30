@@ -2,7 +2,8 @@
  * Navigations are network-first. A page opened while online can open again offline.
  * API responses are never cached. This worker must not delete IndexedDB.
  */
-const CACHE = "west-mis-shell-v2";
+const CACHE = "west-mis-shell-v3";
+const OFFLINE_PAGE = "/offline.html";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -57,8 +58,7 @@ self.addEventListener("sync", (event) => {
 
 async function precacheShell() {
   const cache = await caches.open(CACHE);
-  await cache.addAll(["/offline", "/manifest.webmanifest"]);
-  await cacheAssetsIn(cache, "/offline");
+  await cache.addAll([OFFLINE_PAGE, "/manifest.webmanifest"]);
 }
 
 async function cacheAssetsIn(cache, request) {
@@ -85,7 +85,11 @@ async function networkFirstPage(request) {
     }
     return response;
   } catch {
-    return (await cache.match(request)) || (await cache.match("/offline")) || textOffline();
+    const path = new URL(request.url).pathname;
+    if (path.startsWith("/calendar")) {
+      return (await cache.match(request)) || (await cache.match("/calendar")) || (await cache.match(OFFLINE_PAGE)) || textOffline();
+    }
+    return (await cache.match("/calendar")) || (await cache.match(OFFLINE_PAGE)) || textOffline();
   }
 }
 
@@ -110,7 +114,7 @@ async function clearPages() {
     keys.map((request) => {
       const path = new URL(request.url).pathname;
       const keep =
-        path === "/offline" ||
+        path === "/offline.html" ||
         path === "/manifest.webmanifest" ||
         path.startsWith("/_next/") ||
         path.startsWith("/icons/");

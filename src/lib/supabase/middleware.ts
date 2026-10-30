@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
     url.pathname.startsWith("/reset-password") ||
     url.pathname.startsWith("/change-password");
   const isApiRoute = url.pathname.startsWith("/api");
-  const isOfflinePage = url.pathname === "/offline";
+  const isOfflinePage = url.pathname === "/offline" || url.pathname === "/offline.html";
   const isStaticRoute =
     url.pathname.startsWith("/_next") ||
     url.pathname.startsWith("/icons") ||
