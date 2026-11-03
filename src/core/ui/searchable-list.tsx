@@ -47,10 +47,6 @@ export function SearchableList<T>({
     notify.current?.(filteredRef.current);
   }, [filteredKey]);
 
-  if (items.length === 0) {
-    return <p className="page-copy">{noneYet}</p>;
-  }
-
   const search = (
     <form
       role="search"
@@ -75,8 +71,10 @@ export function SearchableList<T>({
   return (
     <div className="space-y-3">
       {searchSlot ? createPortal(search, searchSlot) : searchSlot === undefined ? search : null}
-      {filtered.length === 0 ? (
-        <p className="page-copy">{noneFound(query.trim())}</p>
+      {items.length === 0 ? (
+        hideRows ? null : <p className="page-copy">{noneYet}</p>
+      ) : filtered.length === 0 ? (
+        hideRows ? null : <p className="page-copy">{noneFound(query.trim())}</p>
       ) : hideRows ? null : (
         <div className="space-y-3">
           {filtered.map((item) => (

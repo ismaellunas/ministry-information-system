@@ -67,6 +67,7 @@ export function CalendarBoard({
   from,
   canAdd,
   addEvent,
+  onNavigate,
 }: {
   items: CalendarItem[];
   churches: Array<{ id: string; name: string }>;
@@ -74,8 +75,19 @@ export function CalendarBoard({
   from: string;
   canAdd: boolean;
   addEvent: AddEventContext | null;
+  onNavigate?: (nextFrom: string) => void;
 }) {
   const router = useRouter();
+  const navigate = useCallback(
+    (nextFrom: string) => {
+      if (onNavigate) {
+        onNavigate(nextFrom);
+      } else {
+        router.replace(`/calendar?from=${nextFrom}`);
+      }
+    },
+    [onNavigate, router]
+  );
   const [draft, setDraft] = useState<EventFormValues | null>(null);
   const [view, setView] = useState<View>("month");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -126,7 +138,7 @@ export function CalendarBoard({
 
   function openDay(day: Date) {
     setView("day");
-    router.replace(`/calendar?from=${format(day, "yyyy-MM-dd")}`);
+    navigate(format(day, "yyyy-MM-dd"));
   }
 
   if (draft && addEvent) {
@@ -241,13 +253,25 @@ export function CalendarBoard({
         </SearchableList>
       </div>
 
-      {view === "agenda" && <CalendarNav canAdd={canAdd} onAdd={() => addEvent && setDraft(blankEvent(addEvent))} onPrevious={() => move(router, from, view, -1)} onNext={() => move(router, from, view, 1)} />}
+      {view === "agenda" && (
+        <CalendarNav
+          canAdd={canAdd}
+          onAdd={() => addEvent && setDraft(blankEvent(addEvent))}
+          onPrevious={() => move(from, view, -1, navigate)}
+          onNext={() => move(from, view, 1, navigate)}
+        />
+      )}
 
       {view === "month" && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 md:hidden">
           <MonthName cursor={cursor} />
           <PhoneMonth cursor={cursor} events={shown} onOpenDay={openDay} />
-          <CalendarNav canAdd={canAdd} onAdd={() => addEvent && setDraft(blankEvent(addEvent))} onPrevious={() => move(router, from, view, -1)} onNext={() => move(router, from, view, 1)} />
+          <CalendarNav
+            canAdd={canAdd}
+            onAdd={() => addEvent && setDraft(blankEvent(addEvent))}
+            onPrevious={() => move(from, view, -1, navigate)}
+            onNext={() => move(from, view, 1, navigate)}
+          />
         </div>
       )}
 
@@ -265,15 +289,19 @@ export function CalendarBoard({
               toolbar={false}
               showAllEvents
               onNavigate={(next) => {
-                const stamp = format(next, "yyyy-MM-dd");
-                router.replace(`/calendar?from=${stamp}`);
+                navigate(format(next, "yyyy-MM-dd"));
               }}
               onSelectEvent={(event) => router.push(`/calendar/${event.resource.id}`)}
               eventPropGetter={(event) => ({ className: tone(event.resource) })}
               style={{ height: "100%" }}
             />
           </div>
-          <CalendarNav canAdd={canAdd} onAdd={() => addEvent && setDraft(blankEvent(addEvent))} onPrevious={() => move(router, from, view, -1)} onNext={() => move(router, from, view, 1)} />
+          <CalendarNav
+            canAdd={canAdd}
+            onAdd={() => addEvent && setDraft(blankEvent(addEvent))}
+            onPrevious={() => move(from, view, -1, navigate)}
+            onNext={() => move(from, view, 1, navigate)}
+          />
         </div>
       )}
     </div>
@@ -368,11 +396,16 @@ function tone(item: CalendarItem) {
   return "event-public";
 }
 
-function move(router: ReturnType<typeof useRouter>, from: string, view: View, direction: number) {
+function move(from: string, view: View, direction: number, navigate: (stamp: string) => void) {
   const [year, month, day] = from.split("-").map(Number);
   const cursor = new Date(year, month - 1, day);
-  if (view === "month") cursor.setMonth(cursor.getMonth() + direction);
-  else if (view === "week") cursor.setDate(cursor.getDate() + direction * 7);
-  else cursor.setDate(cursor.getDate() + direction);
-  router.replace(`/calendar?from=${format(cursor, "yyyy-MM-dd")}`);
+  if (view === "month") {
+    cursor.setDate(1);
+    cursor.setMonth(cursor.getMonth() + direction);
+  } else if (view === "week") {
+    cursor.setDate(cursor.getDate() + direction * 7);
+  } else {
+    cursor.setDate(cursor.getDate() + direction);
+  }
+  navigate(format(cursor, "yyyy-MM-dd"));
 }

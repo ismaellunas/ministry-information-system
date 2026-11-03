@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { listStoredActivities, pendingEntityIds, rememberSeen } from "@/composition/browser";
 import { allDayRangeBounds } from "@/domain/time";
 import type { ActivityWire } from "@/domain/sync";
@@ -40,11 +40,32 @@ export function LocalCalendar({
   hideChurchOnly: boolean;
   addEvent: AddEventContext | null;
 }) {
-  // useSearchParams() updates instantly when router.replace() fires — even while offline.
-  // This gives us the current ?from= value without waiting for a server re-render.
+  const router = useRouter();
   const searchParams = useSearchParams();
   const rawFrom = searchParams.get("from") ?? serverFrom;
-  const from = CIVIL.test(rawFrom) ? rawFrom : serverFrom;
+  const initialFrom = CIVIL.test(rawFrom) ? rawFrom : serverFrom;
+  const [from, setFrom] = useState(initialFrom);
+
+  useEffect(() => {
+    const urlFrom = searchParams.get("from");
+    if (urlFrom && CIVIL.test(urlFrom) && urlFrom !== from) {
+      setFrom(urlFrom);
+    }
+  }, [searchParams, from]);
+
+  const handleNavigate = useCallback(
+    (nextFrom: string) => {
+      if (nextFrom === from) return;
+      setFrom(nextFrom);
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", `/calendar?from=${nextFrom}`);
+      }
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        router.replace(`/calendar?from=${nextFrom}`);
+      }
+    },
+    [from, router]
+  );
 
   const [items, setItems] = useState(initialItems);
   const signature = initialItems.map((item) => `${item.id}:${item.start}:${item.clashMessage ?? ""}`).join("|");
@@ -97,7 +118,15 @@ export function LocalCalendar({
   }, [signature, from, serverFrom, hideChurchOnly, homeChurchId]);
 
   return (
-    <CalendarBoard items={items} churches={churches} ministries={ministries} from={from} canAdd={canAdd} addEvent={addEvent} />
+    <CalendarBoard
+      items={items}
+      churches={churches}
+      ministries={ministries}
+      from={from}
+      canAdd={canAdd}
+      addEvent={addEvent}
+      onNavigate={handleNavigate}
+    />
   );
 }
 
