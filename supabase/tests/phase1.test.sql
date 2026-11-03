@@ -42,7 +42,7 @@ select has_type('public', 'audience_label', 'audience_label enum exists');
 
 -- Functions exist
 select has_function('public', 'app_is_active', 'app_is_active() exists');
-select has_function('public', 'app_church_id', 'app_church_id() exists');
+select has_function('public', 'app_church_ids', 'app_church_ids() exists');
 select has_function('public', 'app_is_admin', 'app_is_admin() exists');
 
 select * from finish();
