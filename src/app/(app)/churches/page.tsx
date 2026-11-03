@@ -1,4 +1,5 @@
 import { createServices, requireProfile } from "@/composition/server";
+import { churchRepChurchIds } from "@/domain/activity-access";
 import { sortDirectoryChurches } from "@/domain/directory";
 import { cachedFetch } from "@/lib/page-cache";
 import { CreateChurchForm } from "./_components/ChurchForms";
@@ -8,9 +9,17 @@ export const metadata = { title: "Directory — West Section MIS" };
 
 export default async function ChurchesPage() {
   const actor = await requireProfile();
-  const { churches } = await createServices(actor);
-  const list = sortDirectoryChurches(
-    await cachedFetch(() => churches.list(true), actor.id, "churches-list", ["churches"], 60)
+  const { churches, ministries } = await createServices(actor);
+  const [list, ministryList] = await cachedFetch(
+    () =>
+      Promise.all([
+        churches.list(true).then(sortDirectoryChurches),
+        ministries.listAll().then((all) => all.filter((ministry) => ministry.tracksMembership)),
+      ]),
+    actor.id,
+    "churches-list",
+    ["churches"],
+    60
   );
   const isAdmin = actor.roles.some((role) => role.role === "ADMIN");
 
@@ -23,7 +32,7 @@ export default async function ChurchesPage() {
           <CreateChurchForm />
         </section>
       )}
-      <ChurchList churches={list} />
+      <ChurchList churches={list} repChurchIds={churchRepChurchIds(actor)} ministries={ministryList} />
     </div>
   );
 }

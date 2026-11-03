@@ -40,6 +40,11 @@ describe("churchRepChurchIds", () => {
     const actor = person([role("CHURCH_REP", "church-a"), role("CHURCH_REP", "church-a"), role("SECTION_MINISTRY_REP", null, 1)]);
     expect(churchRepChurchIds(actor)).toEqual(["church-a"]);
   });
+
+  it("lists every church for a rep assigned to more than one", () => {
+    const actor = person([role("CHURCH_REP", "church-a"), role("CHURCH_REP", "church-b")]);
+    expect(churchRepChurchIds(actor)).toEqual(["church-a", "church-b"]);
+  });
 });
 
 describe("assertCanManage", () => {
@@ -134,6 +139,31 @@ describe("assertCanManage", () => {
       )
     ).toThrow(/Closed churches/);
   });
+
+  it("lets a church rep manage either of their churches", () => {
+    const actor = person([role("CHURCH_REP", "church-a"), role("CHURCH_REP", "church-b")]);
+    expect(() =>
+      assertCanManage(
+        actor,
+        { actingRole: "CHURCH_REP", scope: "LOCAL", visibility: "PUBLIC", churchId: "church-a", ministryId: null, isNew: true },
+        open
+      )
+    ).not.toThrow();
+    expect(() =>
+      assertCanManage(
+        actor,
+        { actingRole: "CHURCH_REP", scope: "LOCAL", visibility: "PUBLIC", churchId: "church-b", ministryId: null, isNew: true },
+        open
+      )
+    ).not.toThrow();
+    expect(() =>
+      assertCanManage(
+        actor,
+        { actingRole: "CHURCH_REP", scope: "LOCAL", visibility: "PUBLIC", churchId: "church-c", ministryId: null, isNew: true },
+        open
+      )
+    ).toThrow(AppError);
+  });
 });
 
 describe("visibility and creator", () => {
@@ -142,6 +172,12 @@ describe("visibility and creator", () => {
     expect(viewerCanSeeActivity(person([role("ADMIN")], "admin"), hidden)).toBe(false);
     expect(viewerCanSeeActivity(person([role("CHURCH_REP", "church-b")], "other"), hidden)).toBe(false);
     expect(viewerCanSeeActivity(person([role("CHURCH_REP", "church-a")]), hidden)).toBe(true);
+  });
+
+  it("shows a church-only event to a rep of any of their churches", () => {
+    const hidden = local({ visibility: "CHURCH_ONLY", churchId: "church-b" });
+    const actor = person([role("CHURCH_REP", "church-a"), role("CHURCH_REP", "church-b")]);
+    expect(viewerCanSeeActivity(actor, hidden)).toBe(true);
   });
 
   it("shows phone and hides the name for another church", () => {

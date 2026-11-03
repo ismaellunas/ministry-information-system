@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { AppError } from "@/domain/errors";
 import { createServices, requireProfile } from "@/composition/server";
 import { cachedFetch } from "@/lib/page-cache";
-import { CountsEditor } from "../../_components/CountsEditor";
 import { DirectoryForm } from "../_components/ChurchForms";
 import { RememberChurch } from "../_components/RememberChurch";
 
@@ -26,19 +25,6 @@ export default async function ChurchDetailPage({ params }: { params: { id: strin
   }
   const canEdit = services.churches.canEditDirectory(church.id);
   const isAdmin = actor.roles.some((role) => role.role === "ADMIN");
-  const isOwnChurch = actor.roles.some(
-    (role) => role.role === "CHURCH_REP" && role.churchId === church.id
-  );
-
-  const counts = isOwnChurch
-    ? await cachedFetch(
-        () => services.counts.listForOwnChurch(church.id),
-        actor.id,
-        `counts-${church.id}`,
-        ["counts"],
-        30
-      )
-    : null;
 
   return (
     <div className="space-y-6">
@@ -86,13 +72,6 @@ export default async function ChurchDetailPage({ params }: { params: { id: strin
             </p>
           )}
         </div>
-      )}
-
-      {counts && (
-        <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">Membership counts</h2>
-          <CountsEditor churchId={church.id} ministries={counts.ministries} counts={counts.counts} />
-        </section>
       )}
     </div>
   );

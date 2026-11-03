@@ -9,8 +9,8 @@ import {
   type QueuedMutation,
   type SyncCursor,
 } from "@/domain/sync";
-import type { ActivityDraft, ActivityLike } from "@/domain/types";
-import { deleteLocalDb, localDb, type LocalOutbox } from "@/lib/local-db";
+import type { ActivityDraft, ActivityLike, MemberDraft } from "@/domain/types";
+import { deleteLocalDb, localDb, type LocalOutbox, type MemberOutbox } from "@/lib/local-db";
 
 const listeners = new Set<() => void>();
 
@@ -30,12 +30,50 @@ export async function unsentCount(): Promise<number> {
 
 export async function readSyncMeta(): Promise<{ lastSync: string | null; unsent: number; failed: number }> {
   const db = localDb();
-  const [last, unsent, failed] = await Promise.all([
+  const [last, unsent, failed, members] = await Promise.all([
     db.meta.get("lastSync"),
     db.outbox.where("status").anyOf("pending", "conflict").count(),
     db.outbox.where("status").equals("failed").count(),
+    memberOutboxCounts(),
   ]);
-  return { lastSync: last?.value ?? null, unsent, failed };
+  return {
+    lastSync: last?.value ?? null,
+    unsent: unsent + members.pending,
+    failed: failed + members.failed,
+  };
+}
+
+export async function memberOutboxCounts(): Promise<{ pending: number; failed: number }> {
+  const db = localDb();
+  const [pending, failed] = await Promise.all([
+    db.memberOutbox.where("status").equals("pending").count(),
+    db.memberOutbox.where("status").equals("failed").count(),
+  ]);
+  return { pending, failed };
+}
+
+export async function listMemberOutboxProblems(): Promise<MemberOutbox[]> {
+  return localDb().memberOutbox.where("status").equals("failed").toArray();
+}
+
+export async function retryMemberOutboxRow(id: number): Promise<void> {
+  await localDb().memberOutbox.update(id, { status: "pending", error: null });
+  emit();
+  await runSync();
+}
+
+export async function queueMemberCreate(churchId: string, draft: MemberDraft): Promise<void> {
+  const clientId = draft.id ?? crypto.randomUUID();
+  await localDb().memberOutbox.add({
+    clientId,
+    churchId,
+    queuedAt: new Date().toISOString(),
+    status: "pending",
+    error: null,
+    payload: { ...draft, id: clientId },
+  });
+  emit();
+  void registerBackgroundSync();
 }
 
 export async function listStoredActivities(): Promise<ActivityWire[]> {
@@ -244,6 +282,7 @@ export async function runSync(): Promise<void> {
   try {
     const expired = await failExpired();
     await pushPending();
+    await pushPendingMembers();
     if (expired) await refreshFromScratch();
     else await pullAll();
     await localDb().meta.put({ key: "lastSync", value: new Date().toISOString() });
@@ -328,6 +367,43 @@ async function pushPending(): Promise<void> {
         });
       } else if (result.status === "failed" || result.status === "expired") {
         await db.outbox.update(row.id, { status: "failed", error: result.error });
+      }
+    }
+  }
+}
+
+async function pushPendingMembers(): Promise<void> {
+  const db = localDb();
+  const pending = await db.memberOutbox.where("status").equals("pending").sortBy("queuedAt");
+  for (let index = 0; index < pending.length; index += 20) {
+    const batch = pending.slice(index, index + 20);
+    const response = await fetch("/api/sync/members/push", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mutations: batch.map((row) => ({
+          clientId: row.id,
+          churchId: row.churchId,
+          queuedAt: row.queuedAt,
+          payload: row.payload,
+        })),
+      }),
+    });
+    await assertAuthed(response);
+    if (!response.ok) return;
+    const body = (await response.json()) as {
+      results?: Array<{ clientId: number | null; status: "created" | "failed"; error: string | null }>;
+    };
+    for (const result of body.results ?? []) {
+      if (result.clientId == null) continue;
+      const row = await db.memberOutbox.get(result.clientId);
+      if (!row?.id) continue;
+      if (result.status === "created") {
+        await db.memberOutbox.delete(row.id);
+      } else {
+        await db.memberOutbox.update(row.id, { status: "failed", error: result.error });
       }
     }
   }

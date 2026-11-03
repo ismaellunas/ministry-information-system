@@ -38,3 +38,17 @@ export function isBirthdayToday(
 export function isFirstSundayOfMonth(date: Date): boolean {
   return date.getDay() === 0 && date.getDate() >= 1 && date.getDate() <= 7;
 }
+
+/**
+ * Picks the nearest birthday from a list already filtered to the current month:
+ * the closest day on or after today, or the earliest day if none remain.
+ */
+export function nearestBirthdayThisMonth<T extends { birthDay: number }>(
+  members: T[],
+  todayDay: number
+): T | null {
+  if (members.length === 0) return null;
+  const upcoming = members.filter((member) => member.birthDay >= todayDay);
+  const pool = upcoming.length > 0 ? upcoming : members;
+  return pool.reduce((nearest, member) => (member.birthDay < nearest.birthDay ? member : nearest));
+}

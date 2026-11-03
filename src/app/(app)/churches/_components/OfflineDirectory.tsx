@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { sortDirectoryChurches } from "@/domain/directory";
 import type { Church } from "@/domain/types";
-import { readDirectory } from "@/lib/directory-cache";
+import { readDirectory, readMinistries, type DirectoryMinistry } from "@/lib/directory-cache";
 import { ChurchList } from "./ChurchList";
 
-export function OfflineDirectory() {
+export function OfflineDirectory({ repChurchIds }: { repChurchIds: string[] }) {
   const [churches, setChurches] = useState<Church[] | null>(null);
+  const [ministries, setMinistries] = useState<DirectoryMinistry[]>([]);
 
   useEffect(() => {
     setChurches(sortDirectoryChurches(readDirectory()));
+    setMinistries(readMinistries());
   }, []);
 
   if (!churches) return null;
@@ -26,7 +28,7 @@ export function OfflineDirectory() {
   return (
     <div className="space-y-6">
       <h1 className="page-title">Church Directory</h1>
-      <ChurchList churches={churches} />
+      <ChurchList churches={churches} repChurchIds={repChurchIds} ministries={ministries} />
     </div>
   );
 }

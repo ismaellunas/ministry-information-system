@@ -12,6 +12,7 @@ import { SupabaseAuditRepository } from "@/repositories/supabase/audit.repositor
 import { SupabaseChurchRepository } from "@/repositories/supabase/church.repository";
 import { SupabaseConflictRepository } from "@/repositories/supabase/conflict.repository";
 import { SupabaseCountRepository } from "@/repositories/supabase/count.repository";
+import { SupabaseMemberRepository } from "@/repositories/supabase/member.repository";
 import { SupabaseMinistryRepository } from "@/repositories/supabase/ministry.repository";
 import { SupabaseNotificationRepository } from "@/repositories/supabase/notification.repository";
 import { SupabaseProfileRepository } from "@/repositories/supabase/profile.repository";
@@ -20,6 +21,7 @@ import { AdminService } from "@/services/admin.service";
 import { ChurchService } from "@/services/church.service";
 import { ConflictService } from "@/services/conflict.service";
 import { CountService } from "@/services/count.service";
+import { MemberService } from "@/services/member.service";
 import { NotificationService } from "@/services/notification.service";
 import { SyncService } from "@/services/sync.service";
 
@@ -61,6 +63,7 @@ export async function createServices(actor: Profile) {
   const adminChurches = new SupabaseChurchRepository(adminDb);
   const ministries = new SupabaseMinistryRepository(userDb);
   const counts = new SupabaseCountRepository(userDb);
+  const members = new SupabaseMemberRepository(userDb);
   const auditRead = new SupabaseAuditRepository(userDb);
   const auditWrite = new SupabaseAuditRepository(adminDb);
   const activities = new SupabaseActivityRepository(userDb, adminDb);
@@ -71,13 +74,14 @@ export async function createServices(actor: Profile) {
 
   return {
     churches: new ChurchService(actor, churchRepo, userProfiles, auditWrite, userDb),
-    counts: new CountService(actor, counts, ministries, auditWrite),
+    counts: new CountService(actor, counts, ministries),
     admin: new AdminService(actor, adminProfiles, churchRepo, ministries, auditWrite, adminDb),
     activities: activityService,
     sync: new SyncService(actor, activities, activityService),
     conflicts,
     notifications: new NotificationService(notifications),
     ministries,
+    members: new MemberService(actor, members, ministries, auditWrite),
     auditRead,
   };
 }
@@ -92,6 +96,22 @@ export async function markPasswordChanged(profileId: string): Promise<void> {
   }
   const profiles = new SupabaseProfileRepository(db);
   await profiles.setMustChangePassword(profileId, false);
+}
+
+export async function updateOwnProfile(data: {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string | null;
+}): Promise<Profile> {
+  const db = asTyped(await createClient());
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  if (!user) {
+    throw new AppError("FORBIDDEN", "Sign in again.");
+  }
+  const profiles = new SupabaseProfileRepository(db);
+  return profiles.updateOwn(user.id, data);
 }
 
 export async function getPresbyteryHat(): Promise<PresbyteryHat> {

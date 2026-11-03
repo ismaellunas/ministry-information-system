@@ -31,6 +31,8 @@ export const updateUserFieldsSchema = z.object({
 
 export const userIdSchema = z.string().uuid("User not found.");
 
+export const updateOwnProfileFieldsSchema = updateUserFieldsSchema.omit({ id: true });
+
 const userRoleSchema = z.enum([
   "ADMIN",
   "SECTION_PRESBYTERY",
@@ -61,12 +63,43 @@ export const directoryFieldsSchema = z.object({
   mapPinUrl: z.string(),
 });
 
-export const saveCountSchema = z.object({
-  churchId: z.string().uuid("Church not found."),
-  ministryId: z.number({ invalid_type_error: "Choose a ministry." }).int().positive(),
-  memberCount: z
-    .number({ invalid_type_error: "Membership count must be zero or a positive whole number." })
-    .int("Membership count must be zero or a positive whole number.")
-    .nonnegative("Membership count must be zero or a positive whole number."),
-  rosterComplete: z.boolean(),
-});
+export const createMemberSchema = z
+  .object({
+    churchId: z.string().uuid("Church not found."),
+    ministryId: z.number({ invalid_type_error: "Choose a department." }).int().positive(),
+    fullName: z.string().trim().min(1, "Enter the member's full name."),
+    id: z.string().uuid().optional(),
+    birthMonth: z.number().int().min(1).max(12).optional(),
+    birthDay: z.number().int().min(1).max(31).optional(),
+    birthYear: z
+      .number()
+      .int()
+      .min(1900)
+      .max(new Date().getFullYear())
+      .optional(),
+  })
+  .refine((value) => (value.birthMonth == null) === (value.birthDay == null), {
+    message: "Enter both birth month and day, or leave both blank.",
+    path: ["birthDay"],
+  });
+
+export const updateMemberSchema = z
+  .object({
+    id: z.string().uuid("Member not found."),
+    ministryId: z.number({ invalid_type_error: "Choose a department." }).int().positive(),
+    fullName: z.string().trim().min(1, "Enter the member's full name."),
+    birthMonth: z.number().int().min(1).max(12).optional(),
+    birthDay: z.number().int().min(1).max(31).optional(),
+    birthYear: z
+      .number()
+      .int()
+      .min(1900)
+      .max(new Date().getFullYear())
+      .optional(),
+  })
+  .refine((value) => (value.birthMonth == null) === (value.birthDay == null), {
+    message: "Enter both birth month and day, or leave both blank.",
+    path: ["birthDay"],
+  });
+
+export const memberIdSchema = z.string().uuid("Member not found.");

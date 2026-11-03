@@ -23,4 +23,12 @@ declare module "lucide-react" {
   export const Church: LucideIcon;
   export const Users: LucideIcon;
   export const ClipboardList: LucideIcon;
+  export const MapPin: LucideIcon;
+  export const Phone: LucideIcon;
+  export const Cake: LucideIcon;
+  export const BookOpen: LucideIcon;
+  export const Flower2: LucideIcon;
+  export const Zap: LucideIcon;
+  export const ArrowUpRight: LucideIcon;
+  export const UserPlus: LucideIcon;
 }

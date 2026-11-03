@@ -47,7 +47,11 @@ export function viewerCanSeeActivity(viewer: Profile, activity: ActivityLike): b
   if (activity.deleted) return false;
   if (activity.scope === "SECTIONAL") return true;
   if (activity.visibility === "PUBLIC") return true;
-  return activity.visibility === "CHURCH_ONLY" && activity.churchId === homeChurchId(viewer);
+  return (
+    activity.visibility === "CHURCH_ONLY" &&
+    activity.churchId != null &&
+    churchRepChurchIds(viewer).includes(activity.churchId)
+  );
 }
 
 export function creatorDisplay(
@@ -55,7 +59,7 @@ export function creatorDisplay(
   activity: ActivityLike,
   creator: { id: string; firstName: string; lastName: string; phoneNumber: string | null }
 ): { name: string | null; phone: string | null } {
-  const ownChurch = activity.churchId != null && activity.churchId === homeChurchId(viewer);
+  const ownChurch = activity.churchId != null && churchRepChurchIds(viewer).includes(activity.churchId);
   if (viewer.id === creator.id || ownChurch) {
     return {
       name: `${creator.firstName} ${creator.lastName}`.trim(),
@@ -93,7 +97,7 @@ export function assertCanManage(
         throw new AppError("FORBIDDEN", "Admin cannot manage a church-only event.");
       }
     } else if (input.actingRole === "CHURCH_REP") {
-      if (homeChurchId(actor) !== input.churchId) {
+      if (!churchRepChurchIds(actor).includes(input.churchId)) {
         throw new AppError("FORBIDDEN", "You can only manage events for your church.");
       }
     } else {

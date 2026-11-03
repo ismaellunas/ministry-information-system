@@ -39,9 +39,11 @@ export function validateRoleSet(
     return "ADMIN cannot be combined with any other role.";
   }
 
+  // A pastor may be assigned to more than one church; only the same church twice is invalid.
   const churchReps = roles.filter((role) => role.role === "CHURCH_REP");
-  if (churchReps.length > 1) {
-    return "A person can represent at most one church.";
+  const churchIds = churchReps.map((role) => role.churchId);
+  if (new Set(churchIds).size !== churchIds.length) {
+    return "A person cannot represent the same church twice.";
   }
 
   const ministryReps = roles.filter((role) => role.role === "SECTION_MINISTRY_REP");
@@ -54,8 +56,8 @@ export function validateRoleSet(
     return "A profile can hold the Presbytery role only once.";
   }
 
-  if (presbytery.length === 1 && churchReps.length !== 1) {
-    return "The Presbytery must also be a church representative of exactly one home church.";
+  if (presbytery.length === 1 && churchReps.length === 0) {
+    return "The Presbytery must also represent a home church.";
   }
 
   for (const rep of ministryReps) {
@@ -63,7 +65,7 @@ export function validateRoleSet(
     if (!ministry) {
       return "Unknown ministry.";
     }
-    if (!ministry.allowsChurchlessRep && churchReps.length !== 1) {
+    if (!ministry.allowsChurchlessRep && churchReps.length === 0) {
       return `${ministry.name} representative must also be a church representative.`;
     }
   }

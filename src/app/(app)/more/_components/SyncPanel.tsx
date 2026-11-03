@@ -1,18 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { keepMine, keepServer, listOutboxProblems, runSync, subscribeSync } from "@/composition/browser";
-import type { LocalOutbox } from "@/lib/local-db";
+import {
+  keepMine,
+  keepServer,
+  listMemberOutboxProblems,
+  listOutboxProblems,
+  retryMemberOutboxRow,
+  runSync,
+  subscribeSync,
+} from "@/composition/browser";
+import type { LocalOutbox, MemberOutbox } from "@/lib/local-db";
 import { Button } from "@/core/ui/button";
 import { SearchableList } from "@/core/ui/searchable-list";
 
 export function SyncPanel() {
   const [problems, setProblems] = useState<LocalOutbox[]>([]);
+  const [memberProblems, setMemberProblems] = useState<MemberOutbox[]>([]);
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     void listOutboxProblems().then(setProblems);
+    void listMemberOutboxProblems().then(setMemberProblems);
   }, []);
 
   useEffect(() => {
@@ -68,6 +78,22 @@ export function SyncPanel() {
           </div>
         )}
       </SearchableList>
+      {memberProblems.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-gray-900">Members that failed to add</p>
+          {memberProblems.map((row) => (
+            <div key={row.id} className="space-y-3 rounded-2xl border border-gray-200 p-4">
+              <p className="text-sm font-semibold text-gray-900">{row.payload.fullName || "Member"}</p>
+              {row.error && <p className="text-sm text-destructive">{row.error}</p>}
+              {row.id != null && (
+                <Button type="button" className="w-full" onClick={() => void retryMemberOutboxRow(row.id!)}>
+                  Retry
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

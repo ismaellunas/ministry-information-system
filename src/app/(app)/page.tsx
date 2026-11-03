@@ -5,108 +5,139 @@ import {
   requireProfile,
 } from "@/composition/server";
 import { cachedFetch } from "@/lib/page-cache";
-import { CountsEditor } from "./_components/CountsEditor";
+import { churchRepChurchIds } from "@/domain/activity-access";
+import type { PresbyteryHat, UserRole } from "@/domain/types";
+import { ChurchHeroCard } from "./_components/ChurchHeroCard";
+import { DepartmentCountsSection } from "./_components/DepartmentCountsSection";
 import { HatSwitch } from "./_components/HatSwitch";
 import { MissingDepartments } from "./_components/MissingDepartments";
-import { SummaryList } from "./_components/SummaryList";
-import { Upcoming } from "./_components/Upcoming";
-import { roleLabel } from "@/domain/roles";
+import { SectionCountsSection } from "./_components/SectionCountsSection";
+import { SectionHeroCard } from "./_components/SectionHeroCard";
+import { UpcomingBirthdaysCard } from "./_components/UpcomingBirthdaysCard";
+import { UpcomingEventsCard } from "./_components/UpcomingEventsCard";
 
 export const metadata = { title: "Home — West Section MIS" };
 
 export default async function HomePage() {
   const actor = await requireProfile();
-  const services = await createServices(actor);
   const isAdmin = actor.roles.some((role) => role.role === "ADMIN");
   const isPresbytery = actor.roles.some((role) => role.role === "SECTION_PRESBYTERY");
-  const churchId = actor.roles.find((role) => role.role === "CHURCH_REP")?.churchId ?? null;
-  const isMinistryRep = actor.roles.some((role) => role.role === "SECTION_MINISTRY_REP");
+  const churchIds = churchRepChurchIds(actor);
   const hat = isPresbytery ? await getPresbyteryHat() : "church";
+
+  if (actor.roles.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="page-title">Home</h1>
+          <p className="page-copy mt-1">
+            {actor.firstName} {actor.lastName}
+          </p>
+        </div>
+        <p className="page-copy">No roles assigned. Contact your administrator.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Home</h1>
-        <p className="page-copy mt-1">
-          {actor.firstName} {actor.lastName}
-        </p>
-        <ul className="mt-2 text-sm text-gray-500">
-          {actor.roles.map((role) => (
-            <li key={role.id}>{roleLabel(role.role)}</li>
-          ))}
-        </ul>
-      </div>
-
       {isPresbytery && <HatSwitch value={hat} />}
-
-      {isAdmin && <AdminHome />}
-      {!isAdmin && churchId && (!isPresbytery || hat === "church") && (
-        <ChurchCounts churchId={churchId} />
+      {churchIds.length > 0 && (!isPresbytery || hat === "church") ? (
+        <div className="space-y-6">
+          {churchIds.map((id) => (
+            <ChurchDashboard key={id} churchId={id} hat={hat} />
+          ))}
+        </div>
+      ) : (
+        <SectionDashboard hat={hat} />
       )}
-      {!isAdmin && (isMinistryRep || (isPresbytery && hat === "section")) && (
-        <SectionSummary />
-      )}
-      {!isAdmin && <Upcoming hat={isPresbytery ? hat : "church"} />}
-      {actor.roles.length === 0 && (
-        <p className="page-copy">No roles assigned. Contact your administrator.</p>
-      )}
+      <MissingDepartmentsSection />
+      {isAdmin && <AdminTools />}
     </div>
   );
 }
 
-async function ChurchCounts({ churchId }: { churchId: string }) {
+async function ChurchDashboard({ churchId, hat }: { churchId: string; hat: PresbyteryHat }) {
   const actor = await requireProfile();
-  const { counts, churches } = await createServices(actor);
-  const [church, data] = await cachedFetch(
-    () => Promise.all([churches.get(churchId), counts.listForOwnChurch(churchId)]),
+  const { churches } = await createServices(actor);
+  const church = await cachedFetch(
+    () => churches.get(churchId),
     actor.id,
-    "home-counts"
+    `home-church-${churchId}`,
+    ["churches"],
+    60
   );
+  const role = actor.roles.some((item) => item.role === "SECTION_PRESBYTERY")
+    ? "SECTION_PRESBYTERY"
+    : "CHURCH_REP";
+
   return (
-    <section className="space-y-3">
-      <h2 className="text-base font-semibold text-gray-900">{church.name} membership</h2>
-      <p className="page-copy">
-        Type the current membership. The section keeps seeing this number until the roster is marked complete.
-      </p>
-      <CountsEditor churchId={churchId} ministries={data.ministries} counts={data.counts} />
-    </section>
+    <div className="space-y-6">
+      <ChurchHeroCard church={church} actor={actor} role={role} />
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">This month</h2>
+        <div className="space-y-3">
+          <UpcomingBirthdaysCard churchId={churchId} />
+          <UpcomingEventsCard hat={hat} />
+        </div>
+      </section>
+      <DepartmentCountsSection churchId={churchId} />
+    </div>
   );
 }
 
-async function SectionSummary() {
+async function SectionDashboard({ hat }: { hat: PresbyteryHat }) {
   const actor = await requireProfile();
+  const { churches } = await createServices(actor);
+  const churchList = await cachedFetch(
+    () => churches.list(true),
+    actor.id,
+    "home-section-churches",
+    ["churches"],
+    60
+  );
+  const activeChurchCount = churchList.filter((church) => church.isActive).length;
+  const role: UserRole = actor.roles.some((item) => item.role === "ADMIN")
+    ? "ADMIN"
+    : actor.roles.some((item) => item.role === "SECTION_PRESBYTERY")
+      ? "SECTION_PRESBYTERY"
+      : "SECTION_MINISTRY_REP";
+
+  return (
+    <div className="space-y-6">
+      <SectionHeroCard actor={actor} role={role} activeChurchCount={activeChurchCount} />
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">This month</h2>
+        <UpcomingEventsCard hat={hat} />
+      </section>
+      <SectionCountsSection />
+    </div>
+  );
+}
+
+async function MissingDepartmentsSection() {
+  const actor = await requireProfile();
+  const isAdmin = actor.roles.some((role) => role.role === "ADMIN");
+  const isPresbytery = actor.roles.some((role) => role.role === "SECTION_PRESBYTERY");
+  if (!isAdmin && !isPresbytery) return null;
   const { counts } = await createServices(actor);
   const data = await cachedFetch(
     () => counts.summary(),
     actor.id,
-    "home-summary"
+    "home-missing-departments",
+    ["counts"],
+    30
   );
-  const isPresbytery = actor.roles.some((role) => role.role === "SECTION_PRESBYTERY");
-  return (
-    <div className="space-y-6">
-      {isPresbytery && <MissingDepartments rows={data.rows} ministries={data.ministries} />}
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-gray-900">Section counts</h2>
-        <SummaryList rows={data.rows} ministries={data.ministries} />
-      </section>
-    </div>
-  );
+  return <MissingDepartments rows={data.rows} ministries={data.ministries} />;
 }
 
-async function AdminHome() {
+async function AdminTools() {
   const actor = await requireProfile();
-  const { counts, admin, churches: churchService, ministries } = await createServices(actor);
-  const [summary, users, churchList, ministryList, audit] = await cachedFetch(
-    () =>
-      Promise.all([
-        counts.summary(),
-        admin.listUsers(),
-        churchService.list(true),
-        ministries.listAll(),
-        admin.listAudit(5),
-      ]),
+  const { admin, churches: churchService } = await createServices(actor);
+  const [users, churchList, audit] = await cachedFetch(
+    () => Promise.all([admin.listUsers(), churchService.list(true), admin.listAudit(5)]),
     actor.id,
-    "home-admin"
+    "home-admin-tools"
   );
   const neverSignedIn = users.filter((user) => user.profile.isActive && !user.lastSignInAt);
   const churchesMissingReps = [];
@@ -121,13 +152,6 @@ async function AdminHome() {
 
   return (
     <div className="space-y-6">
-      <MissingDepartments rows={summary.rows} ministries={summary.ministries} />
-
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-gray-900">Section counts</h2>
-        <SummaryList rows={summary.rows} ministries={summary.ministries} />
-      </section>
-
       {churchesMissingReps.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-gray-900">Active churches with no rep</h2>
@@ -181,10 +205,6 @@ async function AdminHome() {
           </ul>
         )}
       </section>
-
-      <p className="page-copy">
-        {ministryList.filter((item) => item.tracksMembership).length} reporting departments · {churchList.filter((item) => item.isActive).length} active churches
-      </p>
     </div>
   );
 }

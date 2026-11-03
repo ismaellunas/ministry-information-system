@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -117,10 +117,21 @@ function useOnline() {
   return online;
 }
 
-export function AppShell({ profile, children }: AppShellProps) {
+export function AppShell({ profile, roles, children }: AppShellProps) {
   const pathname = usePathname();
   const online = useOnline();
   const [directoryOpen, setDirectoryOpen] = useState(false);
+  const repChurchIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          roles
+            .filter((role) => role.role === "CHURCH_REP" && role.church_id)
+            .map((role) => role.church_id as string)
+        )
+      ),
+    [roles]
+  );
 
   useEffect(() => {
     if (online) setDirectoryOpen(false);
@@ -194,7 +205,7 @@ export function AppShell({ profile, children }: AppShellProps) {
         </header>
 
         <main className="mx-auto w-full max-w-screen-lg flex-1 px-4 py-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:px-6 md:pb-8">
-          {directoryOpen ? <OfflineDirectory /> : children}
+          {directoryOpen ? <OfflineDirectory repChurchIds={repChurchIds} /> : children}
         </main>
 
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">

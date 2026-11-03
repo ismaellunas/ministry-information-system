@@ -5,14 +5,38 @@ import Link from "next/link";
 import type { Church } from "@/domain/types";
 import { searchableText } from "@/domain/search";
 import { SearchableList } from "@/core/ui/searchable-list";
-import { rememberDirectory } from "@/lib/directory-cache";
+import { rememberDirectory, rememberMinistries } from "@/lib/directory-cache";
+import { ChurchChooser } from "./ChurchChooser";
+import { MemberForm } from "./MemberForm";
 
-export function ChurchList({ churches }: { churches: Church[] }) {
-  const [opened, setOpened] = useState<Church | null>(null);
+interface ChurchListMinistry {
+  id: number;
+  name: string;
+}
+
+interface OpenedView {
+  church: Church;
+  mode: "menu" | "read" | "add-member";
+}
+
+export function ChurchList({
+  churches,
+  repChurchIds,
+  ministries,
+}: {
+  churches: Church[];
+  repChurchIds: string[];
+  ministries: ChurchListMinistry[];
+}) {
+  const [opened, setOpened] = useState<OpenedView | null>(null);
 
   useEffect(() => {
     rememberDirectory(churches);
   }, [churches]);
+
+  useEffect(() => {
+    if (ministries.length > 0) rememberMinistries(ministries);
+  }, [ministries]);
 
   if (opened) {
     return (
@@ -20,7 +44,16 @@ export function ChurchList({ churches }: { churches: Church[] }) {
         <button type="button" className="min-h-11 text-sm font-medium text-brand-500" onClick={() => setOpened(null)}>
           Directory
         </button>
-        <ChurchReadView church={opened} />
+        {opened.mode === "menu" && (
+          <ChurchChooser
+            churchId={opened.church.id}
+            onEdit={() => setOpened({ church: opened.church, mode: "read" })}
+            onAddMember={() => setOpened({ church: opened.church, mode: "add-member" })}
+            showViewMembers={false}
+          />
+        )}
+        {opened.mode === "read" && <ChurchReadView church={opened.church} />}
+        {opened.mode === "add-member" && <MemberForm churchId={opened.church.id} ministries={ministries} />}
       </div>
     );
   }
@@ -45,46 +78,49 @@ export function ChurchList({ churches }: { churches: Church[] }) {
       noneYet="No churches yet."
       noneFound={(query) => `No churches match “${query}”.`}
     >
-      {(church) => (
-        <Link
-          href={`/churches/${church.id}`}
-          className="block rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs"
-          onClick={(event) => {
-            if (navigator.onLine) return;
-            event.preventDefault();
-            setOpened(church);
-          }}
-        >
-          <div className="flex items-start gap-3">
-            {church.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={church.logoUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
-            ) : (
-              <div className="h-12 w-12 rounded-lg bg-gray-100" />
-            )}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900">{church.name}</p>
-              {!church.isActive && <p className="page-copy">Closed</p>}
-              {church.pastorName && <p className="page-copy">{church.pastorName}</p>}
-              {church.pastorPhone && <p className="page-copy">{church.pastorPhone}</p>}
-              {church.hotlineNumber && <p className="page-copy">{church.hotlineNumber}</p>}
-              {church.address && (
-                <p className="page-copy whitespace-pre-line">{church.address}</p>
+      {(church) => {
+        const isRep = repChurchIds.includes(church.id);
+        return (
+          <Link
+            href={isRep ? `/churches/${church.id}/choose` : `/churches/${church.id}`}
+            className="block rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs"
+            onClick={(event) => {
+              if (navigator.onLine) return;
+              event.preventDefault();
+              setOpened({ church, mode: isRep ? "menu" : "read" });
+            }}
+          >
+            <div className="flex items-start gap-3">
+              {church.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={church.logoUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
+              ) : (
+                <div className="h-12 w-12 rounded-lg bg-gray-100" />
               )}
-              {church.facebookPageUrl && (
-                <p className="page-copy">
-                  <span className="text-brand-500">Facebook page</span>
-                </p>
-              )}
-              {church.mapPinUrl && (
-                <p className="page-copy">
-                  <span className="text-brand-500">Map pin</span>
-                </p>
-              )}
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900">{church.name}</p>
+                {!church.isActive && <p className="page-copy">Closed</p>}
+                {church.pastorName && <p className="page-copy">{church.pastorName}</p>}
+                {church.pastorPhone && <p className="page-copy">{church.pastorPhone}</p>}
+                {church.hotlineNumber && <p className="page-copy">{church.hotlineNumber}</p>}
+                {church.address && (
+                  <p className="page-copy whitespace-pre-line">{church.address}</p>
+                )}
+                {church.facebookPageUrl && (
+                  <p className="page-copy">
+                    <span className="text-brand-500">Facebook page</span>
+                  </p>
+                )}
+                {church.mapPinUrl && (
+                  <p className="page-copy">
+                    <span className="text-brand-500">Map pin</span>
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        </Link>
-      )}
+          </Link>
+        );
+      }}
     </SearchableList>
   );
 }

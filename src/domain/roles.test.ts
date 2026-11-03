@@ -66,4 +66,22 @@ describe("validateRoleSet", () => {
       ])
     ).toBeNull();
   });
+
+  it("allows a church rep to represent more than one church", () => {
+    expect(
+      set([
+        { role: "CHURCH_REP", churchId: "c1", ministryId: null },
+        { role: "CHURCH_REP", churchId: "c2", ministryId: null },
+      ])
+    ).toBeNull();
+  });
+
+  it("rejects representing the same church twice", () => {
+    expect(
+      set([
+        { role: "CHURCH_REP", churchId: "c1", ministryId: null },
+        { role: "CHURCH_REP", churchId: "c1", ministryId: null },
+      ])
+    ).toMatch(/same church twice/);
+  });
 });

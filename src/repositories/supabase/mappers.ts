@@ -4,8 +4,9 @@ import type {
   Activity,
   AuditEntry,
   Church,
-  ChurchDepartmentCount,
   ChurchSummaryRow,
+  Member,
+  MemberBirthday,
   Ministry,
   MinistryCode,
   Profile,
@@ -16,10 +17,11 @@ type ChurchRow = Database["public"]["Tables"]["churches"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type RoleRow = Database["public"]["Tables"]["profile_roles"]["Row"];
 type MinistryRow = Database["public"]["Tables"]["ministries"]["Row"];
-type CountRow = Database["public"]["Tables"]["church_department_counts"]["Row"];
 type AuditRow = Database["public"]["Tables"]["audit_log"]["Row"];
 type ActivityRow = Database["public"]["Tables"]["activities"]["Row"];
 type SummaryRow = Database["public"]["Functions"]["church_summary"]["Returns"][number];
+type MemberRow = Database["public"]["Tables"]["members"]["Row"];
+type MemberBirthdayRow = Pick<MemberRow, "id" | "full_name" | "birth_month" | "birth_day">;
 
 export function toChurch(row: ChurchRow): Church {
   const fromColumns = {
@@ -79,17 +81,6 @@ export function toMinistry(row: MinistryRow): Ministry {
   };
 }
 
-export function toCount(row: CountRow): ChurchDepartmentCount {
-  return {
-    churchId: row.church_id,
-    ministryId: row.ministry_id,
-    memberCount: row.member_count,
-    rosterComplete: row.roster_complete,
-    updatedBy: row.updated_by,
-    updatedAt: row.updated_at,
-  };
-}
-
 export function toSummary(row: SummaryRow): ChurchSummaryRow {
   return {
     churchId: row.church_id,
@@ -122,6 +113,32 @@ export function toActivity(row: ActivityRow): Activity {
     version: row.version,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
+  };
+}
+
+export function toMemberBirthday(row: MemberBirthdayRow): MemberBirthday {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    birthMonth: row.birth_month ?? 0,
+    birthDay: row.birth_day ?? 0,
+  };
+}
+
+export function toMember(row: MemberRow): Member {
+  return {
+    id: row.id,
+    churchId: row.church_id,
+    ministryId: row.ministry_id,
+    fullName: row.full_name,
+    birthMonth: row.birth_month,
+    birthDay: row.birth_day,
+    birthYear: row.birth_year,
+    isActive: row.is_active,
+    createdBy: row.created_by,
+    version: row.version,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 

@@ -68,13 +68,36 @@ export interface Profile {
   roles: ProfileRole[];
 }
 
-export interface ChurchDepartmentCount {
+export interface MemberBirthday {
+  id: string;
+  fullName: string;
+  birthMonth: number;
+  birthDay: number;
+}
+
+export interface Member {
+  id: string;
   churchId: string;
   ministryId: number;
-  memberCount: number;
-  rosterComplete: boolean;
-  updatedBy: string | null;
+  fullName: string;
+  birthMonth: number | null;
+  birthDay: number | null;
+  birthYear: number | null;
+  isActive: boolean;
+  createdBy: string | null;
+  version: number;
+  createdAt: string;
   updatedAt: string;
+}
+
+/** Client-supplied UUID for offline idempotency, mirroring ActivityDraft. */
+export interface MemberDraft {
+  id?: string;
+  fullName: string;
+  ministryId: number;
+  birthMonth?: number;
+  birthDay?: number;
+  birthYear?: number;
 }
 
 export interface ChurchSummaryRow {

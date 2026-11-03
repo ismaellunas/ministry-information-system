@@ -72,15 +72,16 @@ export function decodePastorName(raw: string | null): {
   if (!raw) return { firstName: null, lastName: null, display: null };
   const trimmed = raw.trim();
   if (trimmed.startsWith("{")) {
+    // A brace-prefixed value is always our JSON encoding, never a legacy plain-text
+    // name — if it fails to parse, treat it as unset rather than falling through to
+    // the space-split below, which would reassemble the raw JSON as a "name".
     try {
       const parsed = JSON.parse(trimmed) as { first?: unknown; last?: unknown };
       const firstName = typeof parsed.first === "string" ? parsed.first : null;
       const lastName = typeof parsed.last === "string" ? parsed.last : null;
-      if (firstName || lastName) {
-        return { firstName, lastName, display: formatPastorName(firstName, lastName) };
-      }
+      return { firstName, lastName, display: formatPastorName(firstName, lastName) };
     } catch {
-      // Fall through to legacy plain-text names.
+      return { firstName: null, lastName: null, display: null };
     }
   }
   const parts = trimmed.split(/\s+/).filter(Boolean);

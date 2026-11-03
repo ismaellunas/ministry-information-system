@@ -54,6 +54,14 @@ describe("encode/decode pastor name", () => {
       display: "GEWCI Pastor",
     });
   });
+
+  it("never leaks raw JSON when a brace-prefixed value fails to parse", () => {
+    expect(decodePastorName('{"first":"Juan",')).toEqual({
+      firstName: null,
+      lastName: null,
+      display: null,
+    });
+  });
 });
 
 describe("parsePastorNames", () => {

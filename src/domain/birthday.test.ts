@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { celebrationDate, isBirthdayToday, isFirstSundayOfMonth } from "./birthday";
+import { celebrationDate, isBirthdayToday, isFirstSundayOfMonth, nearestBirthdayThisMonth } from "./birthday";
 
 describe("celebrationDate", () => {
   it("Feb 29 in leap year stays Feb 29", () => {
@@ -34,5 +34,19 @@ describe("isFirstSundayOfMonth", () => {
   });
   it("Monday → false", () => {
     expect(isFirstSundayOfMonth(new Date("2025-01-06T00:00:00"))).toBe(false);
+  });
+});
+
+describe("nearestBirthdayThisMonth", () => {
+  it("picks the closest day on or after today", () => {
+    const members = [{ birthDay: 3 }, { birthDay: 18 }, { birthDay: 25 }];
+    expect(nearestBirthdayThisMonth(members, 10)).toEqual({ birthDay: 18 });
+  });
+  it("wraps to the earliest day when none remain this month", () => {
+    const members = [{ birthDay: 3 }, { birthDay: 18 }];
+    expect(nearestBirthdayThisMonth(members, 20)).toEqual({ birthDay: 3 });
+  });
+  it("returns null for an empty list", () => {
+    expect(nearestBirthdayThisMonth([], 10)).toBeNull();
   });
 });

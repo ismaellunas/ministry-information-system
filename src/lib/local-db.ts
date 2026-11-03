@@ -1,8 +1,9 @@
 import Dexie, { type Table } from "dexie";
 import type { ActivityWire } from "@/domain/sync";
-import type { ActivityDraft } from "@/domain/types";
+import type { ActivityDraft, MemberDraft } from "@/domain/types";
 
 export type OutboxStatus = "pending" | "failed" | "conflict";
+export type MemberOutboxStatus = "pending" | "failed";
 
 export interface LocalOutbox {
   id?: number;
@@ -17,6 +18,17 @@ export interface LocalOutbox {
   serverActivity: ActivityWire | null;
 }
 
+/** Create-only queue — a new member row has no server counterpart to conflict with. */
+export interface MemberOutbox {
+  id?: number;
+  clientId: string;
+  churchId: string;
+  queuedAt: string;
+  status: MemberOutboxStatus;
+  error: string | null;
+  payload: MemberDraft;
+}
+
 /**
  * Versioned Dexie schema. Add the next version with an upgrade that copies rows.
  * Do not clear `outbox` or `activities` in an upgrade. A service-worker update
@@ -27,6 +39,7 @@ export class WestDatabase extends Dexie {
   activities!: Table<ActivityWire, string>;
   outbox!: Table<LocalOutbox, number>;
   meta!: Table<{ key: string; value: string }, string>;
+  memberOutbox!: Table<MemberOutbox, number>;
 
   constructor() {
     super("west-mis");
@@ -34,6 +47,12 @@ export class WestDatabase extends Dexie {
       activities: "id, updatedAt, startAt",
       outbox: "++id, entityId, status, queuedAt",
       meta: "key",
+    });
+    this.version(2).stores({
+      activities: "id, updatedAt, startAt",
+      outbox: "++id, entityId, status, queuedAt",
+      meta: "key",
+      memberOutbox: "++id, churchId, status, queuedAt",
     });
   }
 }
