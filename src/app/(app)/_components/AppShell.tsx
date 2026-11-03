@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, Building2, Bell, Home, MoreHorizontal } from "lucide-react";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { UserRole } from "@/domain/types";
 import { OfflineDirectory } from "../churches/_components/OfflineDirectory";
 import { SyncEngine, SyncStatusLine } from "./SyncEngine";
+import { NavProgress } from "./NavProgress";
 
 interface AppShellProps {
   profile: { id: string; firstName: string; lastName: string };
@@ -132,6 +133,10 @@ export function AppShell({ profile, children }: AppShellProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 md:flex-row">
+      {/* NavProgress uses useSearchParams and must be inside Suspense */}
+      <Suspense>
+        <NavProgress />
+      </Suspense>
       <SyncEngine />
       <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col md:border-r md:border-gray-200 md:bg-white">
         <div className="px-5 py-5 text-base font-semibold text-gray-900">West MIS</div>

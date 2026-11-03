@@ -1,5 +1,6 @@
 import { createServices, requireProfile } from "@/composition/server";
 import { sortDirectoryChurches } from "@/domain/directory";
+import { cachedFetch } from "@/lib/page-cache";
 import { CreateChurchForm } from "./_components/ChurchForms";
 import { ChurchList } from "./_components/ChurchList";
 
@@ -8,7 +9,9 @@ export const metadata = { title: "Directory — West Section MIS" };
 export default async function ChurchesPage() {
   const actor = await requireProfile();
   const { churches } = await createServices(actor);
-  const list = sortDirectoryChurches(await churches.list(true));
+  const list = sortDirectoryChurches(
+    await cachedFetch(() => churches.list(true), actor.id, "churches-list", ["churches"], 60)
+  );
   const isAdmin = actor.roles.some((role) => role.role === "ADMIN");
 
   return (

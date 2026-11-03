@@ -1,4 +1,5 @@
 import { createServices, requireProfile } from "@/composition/server";
+import { cachedFetch } from "@/lib/page-cache";
 import { InboxList } from "./_components/InboxList";
 
 export const metadata = { title: "Inbox — West Section MIS" };
@@ -6,7 +7,13 @@ export const metadata = { title: "Inbox — West Section MIS" };
 export default async function NotificationsPage() {
   const actor = await requireProfile();
   const { notifications } = await createServices(actor);
-  const rows = await notifications.list();
+  const rows = await cachedFetch(
+    () => notifications.list(),
+    actor.id,
+    "notifications",
+    [],
+    15 // shorter TTL — notifications are time-sensitive
+  );
 
   return (
     <div className="space-y-4">

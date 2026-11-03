@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppError } from "@/domain/errors";
 import { createServices, requireProfile } from "@/composition/server";
+import { cachedFetch } from "@/lib/page-cache";
 import { CountsEditor } from "../../_components/CountsEditor";
 import { DirectoryForm } from "../_components/ChurchForms";
 import { RememberChurch } from "../_components/RememberChurch";
@@ -12,7 +13,13 @@ export default async function ChurchDetailPage({ params }: { params: { id: strin
   const services = await createServices(actor);
   let church;
   try {
-    church = await services.churches.get(params.id);
+    church = await cachedFetch(
+      () => services.churches.get(params.id),
+      actor.id,
+      `church-${params.id}`,
+      ["churches"],
+      60
+    );
   } catch (error) {
     if (error instanceof AppError && error.code === "NOT_FOUND") notFound();
     throw error;
@@ -23,7 +30,15 @@ export default async function ChurchDetailPage({ params }: { params: { id: strin
     (role) => role.role === "CHURCH_REP" && role.churchId === church.id
   );
 
-  const counts = isOwnChurch ? await services.counts.listForOwnChurch(church.id) : null;
+  const counts = isOwnChurch
+    ? await cachedFetch(
+        () => services.counts.listForOwnChurch(church.id),
+        actor.id,
+        `counts-${church.id}`,
+        ["counts"],
+        30
+      )
+    : null;
 
   return (
     <div className="space-y-6">

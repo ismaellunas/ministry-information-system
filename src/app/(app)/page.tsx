@@ -4,6 +4,7 @@ import {
   getPresbyteryHat,
   requireProfile,
 } from "@/composition/server";
+import { cachedFetch } from "@/lib/page-cache";
 import { CountsEditor } from "./_components/CountsEditor";
 import { HatSwitch } from "./_components/HatSwitch";
 import { MissingDepartments } from "./_components/MissingDepartments";
@@ -56,8 +57,11 @@ export default async function HomePage() {
 async function ChurchCounts({ churchId }: { churchId: string }) {
   const actor = await requireProfile();
   const { counts, churches } = await createServices(actor);
-  const church = await churches.get(churchId);
-  const data = await counts.listForOwnChurch(churchId);
+  const [church, data] = await cachedFetch(
+    () => Promise.all([churches.get(churchId), counts.listForOwnChurch(churchId)]),
+    actor.id,
+    "home-counts"
+  );
   return (
     <section className="space-y-3">
       <h2 className="text-base font-semibold text-gray-900">{church.name} membership</h2>
@@ -72,7 +76,11 @@ async function ChurchCounts({ churchId }: { churchId: string }) {
 async function SectionSummary() {
   const actor = await requireProfile();
   const { counts } = await createServices(actor);
-  const data = await counts.summary();
+  const data = await cachedFetch(
+    () => counts.summary(),
+    actor.id,
+    "home-summary"
+  );
   const isPresbytery = actor.roles.some((role) => role.role === "SECTION_PRESBYTERY");
   return (
     <div className="space-y-6">
@@ -88,13 +96,18 @@ async function SectionSummary() {
 async function AdminHome() {
   const actor = await requireProfile();
   const { counts, admin, churches: churchService, ministries } = await createServices(actor);
-  const [summary, users, churchList, ministryList, audit] = await Promise.all([
-    counts.summary(),
-    admin.listUsers(),
-    churchService.list(true),
-    ministries.listAll(),
-    admin.listAudit(5),
-  ]);
+  const [summary, users, churchList, ministryList, audit] = await cachedFetch(
+    () =>
+      Promise.all([
+        counts.summary(),
+        admin.listUsers(),
+        churchService.list(true),
+        ministries.listAll(),
+        admin.listAudit(5),
+      ]),
+    actor.id,
+    "home-admin"
+  );
   const neverSignedIn = users.filter((user) => user.profile.isActive && !user.lastSignInAt);
   const churchesMissingReps = [];
   for (const church of churchList.filter((item) => item.isActive)) {

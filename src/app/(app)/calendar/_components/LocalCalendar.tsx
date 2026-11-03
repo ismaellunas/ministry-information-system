@@ -1,15 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { listStoredActivities, pendingEntityIds, rememberSeen } from "@/composition/browser";
+import { allDayRangeBounds } from "@/domain/time";
 import type { ActivityWire } from "@/domain/sync";
 import { CalendarBoard, type AddEventContext, type CalendarItem } from "./CalendarBoard";
+
+/** The server fetches from-7 days to from+42 days. Mirror that window for offline navigation. */
+function windowFor(civil: string): { start: Date; end: Date } {
+  const [year, month, day] = civil.split("-").map(Number);
+  const base = new Date(year, month - 1, day);
+  const shift = (days: number) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + days);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  return allDayRangeBounds(shift(-7), shift(42));
+}
+
+const CIVIL = /^\d{4}-\d{2}-\d{2}$/;
 
 export function LocalCalendar({
   initialItems,
   churches,
   ministries,
-  from,
+  from: serverFrom,
   canAdd,
   homeChurchId,
   hideChurchOnly,
@@ -24,6 +40,12 @@ export function LocalCalendar({
   hideChurchOnly: boolean;
   addEvent: AddEventContext | null;
 }) {
+  // useSearchParams() updates instantly when router.replace() fires — even while offline.
+  // This gives us the current ?from= value without waiting for a server re-render.
+  const searchParams = useSearchParams();
+  const rawFrom = searchParams.get("from") ?? serverFrom;
+  const from = CIVIL.test(rawFrom) ? rawFrom : serverFrom;
+
   const [items, setItems] = useState(initialItems);
   const signature = initialItems.map((item) => `${item.id}:${item.start}:${item.clashMessage ?? ""}`).join("|");
 
@@ -45,7 +67,23 @@ export function LocalCalendar({
       );
       const [stored, pending] = await Promise.all([listStoredActivities(), pendingEntityIds()]);
       if (cancelled) return;
-      setItems(mergeItems(initialItems, stored, new Set(pending), churches, ministries, homeChurchId, hideChurchOnly));
+
+      // When the user has navigated to a different month/week while offline,
+      // the server cannot re-render. Filter the locally stored events to the
+      // same [-7, +42] window the server would have used for that `from` date.
+      const isOfflineNavigation = from !== serverFrom;
+      const storedForWindow = isOfflineNavigation
+        ? stored.filter((row) => {
+            // Always pass tombstones through so mergeItems can remove them.
+            if (row.deleted) return true;
+            const win = windowFor(from);
+            const rowStart = new Date(row.startAt).getTime();
+            const rowEnd = new Date(row.endAt).getTime();
+            return rowStart < win.end.getTime() && rowEnd > win.start.getTime();
+          })
+        : stored;
+
+      setItems(mergeItems(initialItems, storedForWindow, new Set(pending), churches, ministries, homeChurchId, hideChurchOnly, isOfflineNavigation));
     }
     void load();
     const onSync = () => void load();
@@ -56,7 +94,7 @@ export function LocalCalendar({
     };
     // The signature is the server list. churches and ministries come from the same render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, from, hideChurchOnly, homeChurchId]);
+  }, [signature, from, serverFrom, hideChurchOnly, homeChurchId]);
 
   return (
     <CalendarBoard items={items} churches={churches} ministries={ministries} from={from} canAdd={canAdd} addEvent={addEvent} />
@@ -70,11 +108,19 @@ function mergeItems(
   churches: Array<{ id: string; name: string }>,
   ministries: Array<{ id: number; name: string }>,
   homeChurchId: string | null,
-  hideChurchOnly: boolean
+  hideChurchOnly: boolean,
+  /** When true (offline navigation), build the list entirely from Dexie — server items are for a different date. */
+  fromStoredOnly = false
 ): CalendarItem[] {
   const churchName = new Map(churches.map((church) => [church.id, church.name]));
   const ministryName = new Map(ministries.map((ministry) => [ministry.id, ministry.name]));
-  const byId = new Map(serverItems.map((item) => [item.id, item]));
+
+  // When navigating offline, start with an empty map so we don't show server
+  // items that belong to a different date window.
+  const byId = fromStoredOnly
+    ? new Map<string, CalendarItem>()
+    : new Map(serverItems.map((item) => [item.id, item]));
+
   for (const row of stored) {
     if (hideChurchOnly && row.visibility === "CHURCH_ONLY") continue;
     if (row.deleted) {
@@ -82,7 +128,9 @@ function mergeItems(
       continue;
     }
     const waiting = pending.has(row.id);
-    if (!waiting && byId.has(row.id)) continue;
+    // When merging against the server list (online), skip rows that are
+    // already up-to-date on the server and not pending.
+    if (!fromStoredOnly && !waiting && byId.has(row.id)) continue;
     const churchId = row.churchId ?? row.hostChurchId;
     byId.set(row.id, {
       id: row.id,

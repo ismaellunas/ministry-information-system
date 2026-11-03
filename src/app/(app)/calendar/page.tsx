@@ -1,6 +1,7 @@
 import { actingRoleChoices, churchRepChurchIds, homeChurchId } from "@/domain/activity-access";
 import { allDayBounds, allDayRangeBounds, formatManila, todayManila } from "@/domain/time";
 import { createServices, getPresbyteryHat, requireProfile } from "@/composition/server";
+import { cachedFetch } from "@/lib/page-cache";
 import { LocalCalendar } from "./_components/LocalCalendar";
 import { toCalendarItems } from "./items";
 
@@ -22,19 +23,33 @@ export default async function CalendarPage({
   const hat = actor.roles.some((role) => role.role === "SECTION_PRESBYTERY")
     ? await getPresbyteryHat()
     : "church";
-  const [{ events, marks }, churches, ministries] = await Promise.all([
-    services.activities.list(range, hat),
-    services.churches.list(true),
-    services.ministries.listAll(),
-  ]);
+
+  const { initialItems, churchList, ministryList } = await cachedFetch(
+    async () => {
+      const [{ events, marks }, churches, ministries] = await Promise.all([
+        services.activities.list(range, hat),
+        services.churches.list(true),
+        services.ministries.listAll(),
+      ]);
+      return {
+        initialItems: toCalendarItems(actor, events, marks, churches, ministries),
+        churchList: churches.map((church) => ({ id: church.id, name: church.name, isActive: church.isActive })),
+        ministryList: ministries.map((ministry) => ({ id: ministry.id, name: ministry.name })),
+      };
+    },
+    actor.id,
+    `calendar-${from}-${hat}`,
+    ["activities", "churches"],
+    30
+  );
 
   return (
     <div className="flex flex-col gap-2 max-md:h-[calc(100dvh-9.25rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:block md:h-auto md:space-y-4">
       <h1 className="page-title shrink-0">Calendar</h1>
       <LocalCalendar
-        initialItems={toCalendarItems(actor, events, marks, churches, ministries)}
-        churches={churches.map((church) => ({ id: church.id, name: church.name }))}
-        ministries={ministries.map((ministry) => ({ id: ministry.id, name: ministry.name }))}
+        initialItems={initialItems}
+        churches={churchList}
+        ministries={ministryList}
         from={from}
         canAdd={roles.length > 0}
         homeChurchId={homeChurchId(actor)}
@@ -47,8 +62,8 @@ export default async function CalendarPage({
                 homeChurchId: homeChurchId(actor),
                 repChurchIds: churchRepChurchIds(actor),
                 ownMinistryId: ministryId,
-                churches: churches.map((church) => ({ id: church.id, name: church.name, isActive: church.isActive })),
-                ministries: ministries.map((ministry) => ({ id: ministry.id, name: ministry.name })),
+                churches: churchList,
+                ministries: ministryList,
               }
         }
       />

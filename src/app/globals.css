@@ -54,3 +54,11 @@
     @apply text-sm leading-5 text-gray-500;
   }
 }
+
+/* Navigation progress bar — indeterminate sweep animation */
+@keyframes nav-progress {
+  0%   { width: 0%; opacity: 1; }
+  40%  { width: 70%; }
+  70%  { width: 82%; }
+  100% { width: 90%; opacity: 1; }
+}

@@ -1,0 +1,34 @@
+---
+description: Agent onboarding and change tracking protocol. Apply when starting any task.
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# Agent Onboarding Rule
+
+Every AI agent that works on this project **must**:
+
+1. **Read `AGENT_CONTEXT.md` at the project root before starting any task.** It contains:
+   - Architecture laws that must never be broken
+   - Directory layout
+   - Full migration and service inventory
+   - Open design decisions
+
+2. **Append a new change-log entry to `AGENT_CONTEXT.md` after every session** that modifies code, SQL, or configuration. Use the template at the bottom of that file.
+
+3. **Never skip the Service → Repository layering.** UI and route handlers call services. Services call repositories. Neither talks to Supabase or Dexie directly.
+
+4. **The `blueprint.md` file is the canonical design authority.** When `AGENT_CONTEXT.md` and `blueprint.md` disagree, `blueprint.md` wins unless the change log explicitly records an approved deviation with a date.
+
+## Quick reference — files to always know
+
+| Purpose | File |
+|---|---|
+| Change log + project state | `AGENT_CONTEXT.md` |
+| Full product spec | `blueprint.md` |
+| DB migrations | `supabase/migrations/` |
+| Domain / pure logic | `src/domain/` |
+| Services | `src/services/` |
+| Repositories | `src/repositories/` |
+| Composition roots | `src/composition/server.ts`, `src/composition/browser.ts` |
