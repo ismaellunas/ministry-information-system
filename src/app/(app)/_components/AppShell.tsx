@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, Building2, Bell, Home, MoreHorizontal } from "lucide-react";
@@ -139,7 +140,17 @@ export function AppShell({ profile, children }: AppShellProps) {
       </Suspense>
       <SyncEngine />
       <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col md:border-r md:border-gray-200 md:bg-white">
-        <div className="px-5 py-5 text-base font-semibold text-gray-900">West MIS</div>
+        <div className="flex items-center gap-3 px-5 py-5">
+          <Image
+            src="/favicon.jpeg"
+            alt="West MIS Logo"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-lg object-cover"
+            priority
+          />
+          <span className="text-base font-semibold text-gray-900">West MIS</span>
+        </div>
         <nav className="flex flex-col gap-1 px-3">
           {NAV.map((item) => (
             <NavLink
@@ -162,7 +173,17 @@ export function AppShell({ profile, children }: AppShellProps) {
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-40 border-b border-gray-200 bg-white pt-[env(safe-area-inset-top)]">
           <div className="mx-auto flex h-14 max-w-screen-lg items-center justify-between px-4 md:px-6">
-            <span className="text-base font-semibold text-gray-900 md:sr-only">West MIS</span>
+            <div className="flex items-center gap-2.5 md:hidden">
+              <Image
+                src="/favicon.jpeg"
+                alt="West MIS Logo"
+                width={28}
+                height={28}
+                className="h-7 w-7 rounded-lg object-cover"
+                priority
+              />
+              <span className="text-base font-semibold text-gray-900">West MIS</span>
+            </div>
             <div className="ml-auto flex items-center gap-3">
               <SyncStatusLine />
               <span className="hidden text-sm font-medium text-gray-700 sm:block">

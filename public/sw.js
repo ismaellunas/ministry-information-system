@@ -37,6 +37,7 @@ self.addEventListener("fetch", (event) => {
   if (
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
+    url.pathname === "/favicon.jpeg" ||
     url.pathname === "/manifest.webmanifest"
   ) {
     event.respondWith(staticAsset(event.request));
@@ -59,7 +60,7 @@ self.addEventListener("sync", (event) => {
 
 async function precacheShell() {
   const cache = await caches.open(CACHE);
-  await cache.addAll([OFFLINE_PAGE, "/manifest.webmanifest"]);
+  await cache.addAll([OFFLINE_PAGE, "/manifest.webmanifest", "/favicon.jpeg"]);
 }
 
 async function cacheAssetsIn(cache, request) {
@@ -69,7 +70,7 @@ async function cacheAssetsIn(cache, request) {
   const paths = new Set();
   for (const match of html.matchAll(/(?:src|href)="(\/[^"]+)"/g)) {
     const path = match[1];
-    if (path.startsWith("/_next/") || path.startsWith("/icons/")) paths.add(path);
+    if (path.startsWith("/_next/") || path.startsWith("/icons/") || path === "/favicon.jpeg") paths.add(path);
   }
   await Promise.all(
     Array.from(paths).map((path) => cache.add(path).catch(() => undefined))

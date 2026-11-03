@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: "West Section MIS",
   description: "Northeastern Mindanao District-West Section Ministry Information System",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon.jpeg",
+    shortcut: "/favicon.jpeg",
+    apple: "/favicon.jpeg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -28,7 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={outfit.variable}>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="icon" href="/favicon.jpeg" />
+        <link rel="apple-touch-icon" href="/favicon.jpeg" />
       </head>
       <body className="font-sans">{children}</body>
     </html>
