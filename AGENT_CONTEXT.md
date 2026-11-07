@@ -483,6 +483,22 @@ supabase/
 
 ---
 
+### 2026-11-07 — Cursor (Typecheck the save tests)
+
+**What:** The deferred-save test and the member batch test typecheck under `tsc --noEmit`.
+
+**Why:** `npm run typecheck` failed on the promise release callback and on the untyped mock call list.
+
+**Files changed:**
+- `src/services/activity.service.test.ts` — the gate release matches `Promise<void>`
+- `src/services/member.service.test.ts` — the inserted row is read from a typed mock call
+
+**Decisions made:** None
+
+**Agent notes:** None
+
+---
+
 <!-- TEMPLATE — copy and fill for every new session:
 
 ### YYYY-MM-DD — <Agent name / tool>

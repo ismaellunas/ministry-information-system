@@ -124,9 +124,9 @@ describe("ActivityService.save", () => {
   });
 
   it("returns before clash notices and the audit line finish", async () => {
-    let release = () => undefined;
+    let release = () => undefined as void;
     const gate = new Promise<void>((resolve) => {
-      release = resolve;
+      release = () => resolve();
     });
     const evaluateAndNotify = vi.fn(async () => {
       await gate;

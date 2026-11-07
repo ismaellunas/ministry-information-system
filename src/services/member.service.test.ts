@@ -22,7 +22,7 @@ const ministries = [
 
 describe("MemberService.createMany", () => {
   it("inserts the valid new members in one write", async () => {
-    const createMany = vi.fn(async () => []);
+    const createMany = vi.fn(async (_rows: Array<{ fullName: string }>) => [] as const);
     const findManyByIds = vi.fn(async () => [{ id: "already-there" }]);
     const record = vi.fn(async () => undefined);
     const service = new MemberService(
@@ -39,8 +39,9 @@ describe("MemberService.createMany", () => {
     ]);
 
     expect(createMany).toHaveBeenCalledTimes(1);
-    expect(createMany.mock.calls[0][0]).toHaveLength(1);
-    expect(createMany.mock.calls[0][0][0].fullName).toBe("Ana Cruz");
+    const inserted = createMany.mock.calls[0]?.[0] ?? [];
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]?.fullName).toBe("Ana Cruz");
     expect(record).toHaveBeenCalledWith("rep", "member.create", "members", churchId, { count: 1 });
     expect(results.map((row) => row.status)).toEqual(["created", "failed", "created"]);
   });
