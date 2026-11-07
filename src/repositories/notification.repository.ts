@@ -22,4 +22,6 @@ export interface NotificationRepository {
   markRead(id: string): Promise<void>;
   /** Ignores a duplicate dedupe key. */
   insertIgnore(row: NotificationWrite): Promise<void>;
+  /** One write. A duplicate dedupe key does not fail the rest. */
+  insertIgnoreMany(rows: NotificationWrite[]): Promise<void>;
 }

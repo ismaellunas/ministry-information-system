@@ -1,0 +1,22 @@
+name: Keep the database awake
+
+on:
+  schedule:
+    # Every six hours. A free Supabase project sleeps after a quiet week, and the first request then waits.
+    - cron: "20 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Touch /api/health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake the database
+        env:
+          APP_HEALTH_URL: ${{ secrets.APP_HEALTH_URL }}
+        run: |
+          if [ -z "$APP_HEALTH_URL" ]; then
+            echo "Add the APP_HEALTH_URL secret: the production site, including https, with no path."
+            exit 1
+          fi
+          curl -fsS --retry 3 --retry-delay 10 "${APP_HEALTH_URL%/}/api/health"

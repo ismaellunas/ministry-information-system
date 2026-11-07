@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   createServices,
@@ -16,6 +17,12 @@ import { SectionCountsSection } from "./_components/SectionCountsSection";
 import { SectionHeroCard } from "./_components/SectionHeroCard";
 import { UpcomingBirthdaysCard } from "./_components/UpcomingBirthdaysCard";
 import { UpcomingEventsCard } from "./_components/UpcomingEventsCard";
+import {
+  AdminToolsFrame,
+  MembershipCountsFrame,
+  MissingDepartmentsFrame,
+  PulseCard,
+} from "./_components/DashboardSkeleton";
 
 export const metadata = { title: "Home — West Section MIS" };
 
@@ -52,13 +59,21 @@ export default async function HomePage() {
       ) : (
         <SectionDashboard hat={hat} />
       )}
-      <MissingDepartmentsSection />
-      {isAdmin && <AdminTools />}
+      {(isAdmin || isPresbytery) && (
+        <Suspense fallback={<MissingDepartmentsFrame />}>
+          <MissingDepartmentsSection />
+        </Suspense>
+      )}
+      {isAdmin && (
+        <Suspense fallback={<AdminToolsFrame />}>
+          <AdminTools />
+        </Suspense>
+      )}
     </div>
   );
 }
 
-async function ChurchDashboard({
+function ChurchDashboard({
   churchId,
   hat,
   showDistrictLinks,
@@ -67,6 +82,31 @@ async function ChurchDashboard({
   hat: PresbyteryHat;
   showDistrictLinks: boolean;
 }) {
+  return (
+    <div className="space-y-6">
+      <Suspense fallback={<PulseCard />}>
+        <ChurchHero churchId={churchId} />
+      </Suspense>
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">This month</h2>
+        <div className="space-y-3">
+          <Suspense fallback={<PulseCard />}>
+            <UpcomingBirthdaysCard churchId={churchId} />
+          </Suspense>
+          <Suspense fallback={<PulseCard />}>
+            <UpcomingEventsCard hat={hat} />
+          </Suspense>
+        </div>
+      </section>
+      {showDistrictLinks && <DistrictLinks />}
+      <Suspense fallback={<MembershipCountsFrame />}>
+        <DepartmentCountsSection churchId={churchId} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function ChurchHero({ churchId }: { churchId: string }) {
   const actor = await requireProfile();
   const { churches } = await createServices(actor);
   const church = await cachedFetch(
@@ -80,23 +120,30 @@ async function ChurchDashboard({
     ? "SECTION_PRESBYTERY"
     : "CHURCH_REP";
 
+  return <ChurchHeroCard church={church} actor={actor} role={role} />;
+}
+
+function SectionDashboard({ hat }: { hat: PresbyteryHat }) {
   return (
     <div className="space-y-6">
-      <ChurchHeroCard church={church} actor={actor} role={role} />
+      <Suspense fallback={<PulseCard />}>
+        <SectionHero />
+      </Suspense>
       <section className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">This month</h2>
-        <div className="space-y-3">
-          <UpcomingBirthdaysCard churchId={churchId} />
+        <Suspense fallback={<PulseCard />}>
           <UpcomingEventsCard hat={hat} />
-        </div>
+        </Suspense>
       </section>
-      {showDistrictLinks && <DistrictLinks />}
-      <DepartmentCountsSection churchId={churchId} />
+      <DistrictLinks />
+      <Suspense fallback={<MembershipCountsFrame />}>
+        <SectionCountsSection />
+      </Suspense>
     </div>
   );
 }
 
-async function SectionDashboard({ hat }: { hat: PresbyteryHat }) {
+async function SectionHero() {
   const actor = await requireProfile();
   const { churches } = await createServices(actor);
   const churchList = await cachedFetch(
@@ -113,17 +160,7 @@ async function SectionDashboard({ hat }: { hat: PresbyteryHat }) {
       ? "SECTION_PRESBYTERY"
       : "SECTION_MINISTRY_REP";
 
-  return (
-    <div className="space-y-6">
-      <SectionHeroCard actor={actor} role={role} activeChurchCount={activeChurchCount} />
-      <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">This month</h2>
-        <UpcomingEventsCard hat={hat} />
-      </section>
-      <DistrictLinks />
-      <SectionCountsSection />
-    </div>
-  );
+  return <SectionHeroCard actor={actor} role={role} activeChurchCount={activeChurchCount} />;
 }
 
 async function MissingDepartmentsSection() {
@@ -170,7 +207,7 @@ async function AdminTools() {
             <Link
               key={church.id}
               href={`/churches/${church.id}`}
-              className="block rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs"
+              className="block min-h-11 rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs"
             >
               {church.name}
             </Link>
@@ -187,7 +224,7 @@ async function AdminTools() {
             <Link
               key={user.profile.id}
               href={`/admin/users/${user.profile.id}`}
-              className="block rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs"
+              className="block min-h-11 rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs"
             >
               <p className="text-sm font-semibold text-gray-900">
                 {user.profile.firstName} {user.profile.lastName}
@@ -201,7 +238,9 @@ async function AdminTools() {
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold text-gray-900">Recent audit</h2>
-          <Link href="/admin/audit" className="text-sm font-medium text-brand-500">See all</Link>
+          <Link href="/admin/audit" className="inline-flex min-h-11 items-center text-sm font-medium text-brand-500">
+            See all
+          </Link>
         </div>
         {audit.length === 0 ? (
           <p className="page-copy">No audit rows yet.</p>

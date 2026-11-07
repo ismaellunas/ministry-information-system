@@ -277,7 +277,18 @@ export async function keepServer(outboxId: number): Promise<void> {
   emit();
 }
 
-export async function runSync(): Promise<void> {
+let syncTail: Promise<void> = Promise.resolve();
+
+export function runSync(): Promise<void> {
+  const run = syncTail.then(runSyncBody, runSyncBody);
+  syncTail = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
+
+async function runSyncBody(): Promise<void> {
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
   try {
     const expired = await failExpired();
@@ -392,8 +403,8 @@ async function pushPending(): Promise<void> {
 async function pushPendingMembers(): Promise<void> {
   const db = localDb();
   const pending = await db.memberOutbox.where("status").equals("pending").sortBy("queuedAt");
-  for (let index = 0; index < pending.length; index += 20) {
-    const batch = pending.slice(index, index + 20);
+  for (let index = 0; index < pending.length; index += 80) {
+    const batch = pending.slice(index, index + 80);
     const response = await fetch("/api/sync/members/push", {
       method: "POST",
       credentials: "same-origin",

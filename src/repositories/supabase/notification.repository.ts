@@ -33,15 +33,23 @@ export class SupabaseNotificationRepository implements NotificationRepository {
   }
 
   async insertIgnore(row: NotificationWrite) {
-    const { error } = await this.admin.from("notifications").insert({
-      user_id: row.userId,
-      type: row.type,
-      title: row.title,
-      body: row.body,
-      dedupe_key: row.dedupeKey,
-      data: row.data as Json,
-      read_at: null,
-    });
+    await this.insertIgnoreMany([row]);
+  }
+
+  async insertIgnoreMany(rows: NotificationWrite[]) {
+    if (rows.length === 0) return;
+    const { error } = await this.admin.from("notifications").upsert(
+      rows.map((row) => ({
+        user_id: row.userId,
+        type: row.type,
+        title: row.title,
+        body: row.body,
+        dedupe_key: row.dedupeKey,
+        data: row.data as Json,
+        read_at: null,
+      })),
+      { onConflict: "user_id,dedupe_key", ignoreDuplicates: true }
+    );
     if (error && error.code !== "23505") throw new AppError("DB", error.message);
   }
 }

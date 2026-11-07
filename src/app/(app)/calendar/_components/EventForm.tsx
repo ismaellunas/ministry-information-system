@@ -14,7 +14,6 @@ import { SAVE_DEBOUNCE_MS } from "@/core/ui/autosave";
 import { activityDraftFromForm } from "@/domain/activity-form";
 import { previewLocalSave, queueEventSave, runSync } from "@/composition/browser";
 import { AppError } from "@/domain/errors";
-import { previewEventAction, saveEventAction } from "../actions";
 
 type PersistResult = "saved" | "paused" | "idle" | "error";
 
@@ -100,14 +99,15 @@ export function EventForm({
     return "error";
   }
 
-  async function rememberOnPhone(formData: FormData, key: string): Promise<PersistResult> {
+  async function rememberOnPhone(formData: FormData, key: string, offline: boolean): Promise<PersistResult> {
     const draft = activityDraftFromForm(formData);
     await queueEventSave(draft, draft.expectedVersion ?? null);
     acknowledged.current = key;
-    setSavedOnPhone(true);
-    setSaved(false);
+    setSavedOnPhone(offline);
+    setSaved(!offline);
     setWarnings([]);
     setPending(false);
+    if (!offline) void runSync();
     return "saved";
   }
 
@@ -127,46 +127,17 @@ export function EventForm({
     const offline = typeof navigator !== "undefined" && !navigator.onLine;
     try {
       if (!keepTime && acknowledged.current !== key) {
-        if (offline) {
-          const notes = await previewLocalSave(activityDraftFromForm(formData));
-          if (notes.length > 0) {
-            setWarnings(notes);
-            setPending(false);
-            return "paused";
-          }
-        } else {
-          const preview = await previewEventAction(formData);
-          if (!preview.ok) {
-            setError(preview.error);
-            setPending(false);
-            return "error";
-          }
-          if (preview.data.warnings.length > 0) {
-            setWarnings(preview.data.warnings);
-            setPending(false);
-            return "paused";
-          }
+        const notes = await previewLocalSave(activityDraftFromForm(formData));
+        if (notes.length > 0) {
+          setWarnings(notes);
+          setPending(false);
+          return "paused";
         }
       }
-      if (offline) return await rememberOnPhone(formData, key);
-      const savedEvent = await saveEventAction(formData);
-      if (!savedEvent.ok) {
-        setError(savedEvent.error);
-        setPending(false);
-        return "error";
-      }
-      versionMemory.current = String(savedEvent.data.version);
-      if (versionRef.current) versionRef.current.value = versionMemory.current;
-      acknowledged.current = key;
-      setSaved(true);
-      setSavedOnPhone(false);
-      setWarnings([]);
-      setPending(false);
-      void runSync();
-      return "saved";
+      return await rememberOnPhone(formData, key, offline);
     } catch (caught) {
       try {
-        return await rememberOnPhone(formData, key);
+        return await rememberOnPhone(formData, key, offline);
       } catch (localError) {
         setPending(false);
         const message = localError instanceof AppError

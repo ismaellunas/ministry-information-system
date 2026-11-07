@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppError } from "@/domain/errors";
@@ -29,7 +30,7 @@ function asTyped(client: Awaited<ReturnType<typeof createClient>> | ReturnType<t
   return client as unknown as TypedSupabaseClient;
 }
 
-export async function getCurrentProfile(): Promise<Profile | null> {
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const db = asTyped(await createClient());
   const {
     data: { user },
@@ -37,7 +38,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   if (!user) return null;
   const profiles = new SupabaseProfileRepository(db);
   return profiles.findById(user.id);
-}
+});
 
 export async function requireProfile(): Promise<Profile> {
   const profile = await getCurrentProfile();

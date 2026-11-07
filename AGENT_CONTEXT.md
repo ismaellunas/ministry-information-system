@@ -443,6 +443,46 @@ supabase/
 
 ---
 
+### 2026-11-07 — Cursor (Save on the phone, then let the server catch up)
+
+**What:** An event or a new member is stored on the phone and the screen says Saved before the server answers. Clash notices and the audit line run after that response. A list of new members is one database write. A GitHub Action touches `/api/health` every six hours.
+
+**Why:** A save was waiting on the free database, including a second clash check and one inbox insert per person. Eighty members would have repeated that wait.
+
+**Files changed:**
+- `src/app/(app)/calendar/_components/EventForm.tsx` — local clash check, then the phone queue, then sync
+- `src/services/activity.service.ts` — returns after the event row is stored
+- `src/lib/defer.ts` — keeps the follow-up work alive on Vercel
+- `src/services/conflict.service.ts` — one notice write, churches and profiles loaded once
+- `src/services/member.service.ts` and `src/app/api/sync/members/push/route.ts` — up to 80 members in one insert
+- `src/app/(app)/churches/_components/MemberForm.tsx` — each name is saved locally and the list syncs together
+- `.github/workflows/keep-alive.yml` — health ping every six hours
+
+**Decisions made:** The phone still does not store another church's private events. A clash the phone cannot see arrives later in the inbox. A save the server refuses is marked Failed on the phone. The keep-alive job needs the `APP_HEALTH_URL` secret set to the production site.
+
+**Agent notes:** None
+
+---
+
+### 2026-11-07 — Cursor (Home shell streams before dashboard data)
+
+**What:** Home sends its structure as soon as the signed-in profile is known. The church card, this month's birthday and event, membership counts, missing departments, and admin tools each fill in behind the existing gray card skeleton.
+
+**Why:** The page waited for every Supabase read before it sent any HTML, so the phone's network-first navigation sat on a blank content area. Server rendering stays. The shell no longer waits on those reads.
+
+**Files changed:**
+- `src/app/(app)/page.tsx` — profile chooses the dashboard; each data block is its own Suspense boundary
+- `src/app/(app)/_components/DashboardSkeleton.tsx` — the loading-card skeleton, shared with the route loading screen
+- `src/app/(app)/loading.tsx` — uses that skeleton
+- `src/composition/server.ts` — one profile read per request, shared by the streaming blocks
+- `public/sw.js` — a navigation is returned while the page is still streaming; the finished HTML is still cached for offline
+
+**Decisions made:** Streaming the home shell does not change what a phone stores. The calendar stays Dexie-first. Event queries are unchanged, so another church's private events are not pulled onto the dashboard.
+
+**Agent notes:** The service worker used to wait until the whole HTML body was cached before the page could paint. That hid the streamed shell on a phone that already had the worker. This session could not sign in, so the filled-in cards were not seen in the browser.
+
+---
+
 <!-- TEMPLATE — copy and fill for every new session:
 
 ### YYYY-MM-DD — <Agent name / tool>

@@ -1,6 +1,6 @@
 import { AppError } from "@/domain/errors";
 import type { Member, MemberBirthday } from "@/domain/types";
-import type { MemberRepository } from "@/repositories/member.repository";
+import type { MemberInsert, MemberRepository } from "@/repositories/member.repository";
 import { toMember, toMemberBirthday } from "./mappers";
 import type { TypedSupabaseClient } from "./client";
 
@@ -42,34 +42,39 @@ export class SupabaseMemberRepository implements MemberRepository {
     return data ? toMember(data) : null;
   }
 
-  async create(input: {
-    id: string;
-    churchId: string;
-    ministryId: number;
-    fullName: string;
-    birthMonth: number | null;
-    birthDay: number | null;
-    birthYear: number | null;
-    createdBy: string;
-  }): Promise<Member> {
+  async create(input: MemberInsert): Promise<Member> {
+    const [saved] = await this.createMany([input]);
+    return saved;
+  }
+
+  async findManyByIds(ids: string[]): Promise<Member[]> {
+    if (ids.length === 0) return [];
+    const { data, error } = await this.db.from("members").select("*").in("id", ids);
+    if (error) throw new AppError("DB", error.message);
+    return (data ?? []).map(toMember);
+  }
+
+  async createMany(rows: MemberInsert[]): Promise<Member[]> {
+    if (rows.length === 0) return [];
     const { data, error } = await this.db
       .from("members")
-      .insert({
-        id: input.id,
-        church_id: input.churchId,
-        ministry_id: input.ministryId,
-        full_name: input.fullName,
-        birth_month: input.birthMonth,
-        birth_day: input.birthDay,
-        birth_year: input.birthYear,
-        is_active: true,
-        deleted_at: null,
-        created_by: input.createdBy,
-      })
-      .select("*")
-      .single();
+      .insert(
+        rows.map((input) => ({
+          id: input.id,
+          church_id: input.churchId,
+          ministry_id: input.ministryId,
+          full_name: input.fullName,
+          birth_month: input.birthMonth,
+          birth_day: input.birthDay,
+          birth_year: input.birthYear,
+          is_active: true,
+          deleted_at: null,
+          created_by: input.createdBy,
+        }))
+      )
+      .select("*");
     if (error) throw new AppError("DB", error.message);
-    return toMember(data);
+    return (data ?? []).map(toMember);
   }
 
   async update(

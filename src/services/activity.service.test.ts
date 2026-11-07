@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Activity, Profile } from "@/domain/types";
 import type { ActivityRepository, ActivityWrite } from "@/repositories/activity.repository";
+import { flushDeferred } from "@/lib/defer";
 import { ActivityService } from "./activity.service";
 import type { ConflictService } from "./conflict.service";
 
@@ -59,6 +60,7 @@ describe("ActivityService.save", () => {
       actingRole: "ADMIN",
     });
     expect(result.title).toBe("Sectional meeting");
+    await flushDeferred();
     expect(audit.record).toHaveBeenCalled();
     expect(activities.insert).toHaveBeenCalledWith(expect.objectContaining({ scope: "SECTIONAL" }), "user");
   });
@@ -119,5 +121,43 @@ describe("ActivityService.save", () => {
       actingRole: "ADMIN",
     });
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({ id }), "user");
+  });
+
+  it("returns before clash notices and the audit line finish", async () => {
+    let release = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const evaluateAndNotify = vi.fn(async () => {
+      await gate;
+    });
+    const record = vi.fn(async () => undefined);
+    const activities = {
+      findById: vi.fn(async () => null),
+      insert: vi.fn(async (row: ActivityWrite) => saved(row)),
+    } as unknown as ActivityRepository;
+    const service = new ActivityService(
+      actor,
+      activities,
+      { findById: async () => null } as never,
+      { listAll: async () => [] } as never,
+      { findById: async () => null } as never,
+      { evaluateAndNotify } as never,
+      { record } as never
+    );
+    const result = await service.save({
+      title: "Youth night",
+      isAllDay: false,
+      startAt: "2026-05-01T18:00",
+      endAt: "2026-05-01T19:00",
+      scope: "SECTIONAL",
+      actingRole: "ADMIN",
+    });
+    expect(result.title).toBe("Youth night");
+    expect(record).not.toHaveBeenCalled();
+    release();
+    await flushDeferred();
+    expect(evaluateAndNotify).toHaveBeenCalled();
+    expect(record).toHaveBeenCalled();
   });
 });

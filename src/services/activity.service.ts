@@ -4,6 +4,7 @@ import { resolveActivityBounds } from "@/domain/activity-bounds";
 import { classify } from "@/domain/conflict";
 import { marksForViewer } from "@/domain/conflict-view";
 import { AppError } from "@/domain/errors";
+import { deferAfterResponse } from "@/lib/defer";
 import type {
   Activity,
   ActivityScope,
@@ -138,7 +139,7 @@ export class ActivityService {
     const saved = existing
       ? await this.activities.update(write, input.expectedVersion ?? existing.version, access)
       : await this.activities.insert(write, access);
-    await this.afterWrite(saved, existing ? "activity.update" : "activity.save");
+    this.afterWrite(saved, existing ? "activity.update" : "activity.save");
     return saved;
   }
 
@@ -149,13 +150,17 @@ export class ActivityService {
       throw new AppError("FORBIDDEN", "You cannot remove this event.");
     }
     await this.activities.softDelete(id, expectedVersion);
-    await this.afterWrite(
+    this.afterWrite(
       { ...existing, deleted: true, version: existing.version + 1, updatedAt: new Date() },
       "activity.remove"
     );
   }
 
-  private async afterWrite(saved: Activity, action: string) {
+  private afterWrite(saved: Activity, action: string) {
+    deferAfterResponse(this.finishWrite(saved, action));
+  }
+
+  private async finishWrite(saved: Activity, action: string) {
     try {
       await this.conflicts.evaluateAndNotify(saved);
     } catch (error) {

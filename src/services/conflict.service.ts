@@ -18,6 +18,9 @@ export class ConflictService {
     private readonly notifications: NotificationRepository
   ) {}
 
+  private directory: Awaited<ReturnType<ChurchRepository["listAll"]>> | null = null;
+  private everyone: Profile[] | null = null;
+
   async evaluateAndNotify(saved: Activity): Promise<void> {
     const overlapping = await this.activities.listOverlapping({
       start: saved.startAt,
@@ -102,20 +105,21 @@ export class ConflictService {
   }
 
   private async notify(left: Activity, right: Activity, generation: number) {
-    const profiles = await this.profiles.listAll();
+    if (!this.everyone) this.everyone = await this.profiles.listAll();
     const names = await this.churchNames([left, right]);
-    for (const notice of clashNotices({ left, right, profiles, churchNames: names, generation })) {
+    const rows = clashNotices({ left, right, profiles: this.everyone, churchNames: names, generation }).map((notice) => {
       const data: Record<string, unknown> = { eventId: notice.eventId };
       if (!notice.redacted && notice.otherEventId) data.otherEventId = notice.otherEventId;
-      await this.notifications.insertIgnore({
+      return {
         userId: notice.userId,
         type: "conflict",
         title: notice.title,
         body: notice.body,
         dedupeKey: notice.dedupeKey,
         data,
-      });
-    }
+      };
+    });
+    await this.notifications.insertIgnoreMany(rows);
   }
 
   private async churchNames(events: Activity[]) {
@@ -125,9 +129,9 @@ export class ConflictService {
       if (event.churchId) ids.add(event.churchId);
       if (event.hostChurchId) ids.add(event.hostChurchId);
     }
-    for (const id of Array.from(ids)) {
-      const church = await this.churches.findById(id);
-      if (church) names.set(church.id, church.name);
+    if (!this.directory) this.directory = await this.churches.listAll(true);
+    for (const church of this.directory) {
+      if (ids.has(church.id)) names.set(church.id, church.name);
     }
     return names;
   }

@@ -1,14 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { queueMemberCreate } from "@/composition/browser";
+import { useEffect, useRef, useState } from "react";
+import { queueMemberCreate, runSync } from "@/composition/browser";
 import { toProperCase } from "@/domain/directory";
 import { memberDraftFromForm } from "@/domain/member-form";
 import { Button } from "@/core/ui/button";
 import { Input } from "@/core/ui/input";
 import { Label } from "@/core/ui/label";
 import { Select } from "@/core/ui/select";
-import { createMemberAction } from "../[id]/members/actions";
+import { SAVE_DEBOUNCE_MS } from "@/core/ui/autosave";
 
 export function MemberForm({
   churchId,
@@ -18,6 +18,7 @@ export function MemberForm({
   ministries: Array<{ id: number; name: string }>;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [fullName, setFullName] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,16 +26,26 @@ export function MemberForm({
   const [addedCount, setAddedCount] = useState(0);
   const [queuedCount, setQueuedCount] = useState(0);
 
+  useEffect(() => {
+    return () => {
+      if (!syncTimer.current) return;
+      clearTimeout(syncTimer.current);
+      void runSync();
+    };
+  }, []);
+
+  function scheduleSync() {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => {
+      syncTimer.current = null;
+      void runSync();
+    }, SAVE_DEBOUNCE_MS);
+  }
+
   function resetForm() {
     formRef.current?.reset();
     setFullName("");
-  }
-
-  async function queue(formData: FormData) {
-    await queueMemberCreate(churchId, memberDraftFromForm(formData));
-    setQueuedCount((count) => count + 1);
-    setStatus("queued");
-    resetForm();
   }
 
   async function onSubmit(formData: FormData) {
@@ -49,24 +60,18 @@ export function MemberForm({
     setPending(true);
     const offline = typeof navigator !== "undefined" && !navigator.onLine;
     try {
-      if (offline) {
-        await queue(formData);
-        return;
-      }
-      const result = await createMemberAction(formData);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setAddedCount((count) => count + 1);
-      setStatus("added");
+      await queueMemberCreate(churchId, memberDraftFromForm(formData));
       resetForm();
-    } catch {
-      try {
-        await queue(formData);
-      } catch {
-        setError("Could not add this member.");
+      if (offline) {
+        setQueuedCount((count) => count + 1);
+        setStatus("queued");
+      } else {
+        setAddedCount((count) => count + 1);
+        setStatus("added");
+        scheduleSync();
       }
+    } catch {
+      setError("Could not add this member.");
     } finally {
       setPending(false);
     }
@@ -128,7 +133,7 @@ export function MemberForm({
       )}
       {status === "added" && (
         <p className="page-copy" role="status">
-          Added.
+          Saved.
         </p>
       )}
       {status === "queued" && (

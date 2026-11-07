@@ -26,7 +26,7 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth")) return;
 
   if (event.request.mode === "navigate") {
-    event.respondWith(networkFirstPage(event.request));
+    event.respondWith(networkFirstPage(event));
     return;
   }
 
@@ -99,15 +99,22 @@ async function cacheAssetsIn(cache, request) {
   );
 }
 
-async function networkFirstPage(request) {
+async function networkFirstPage(event) {
+  const request = event.request;
   const cache = await caches.open(CACHE);
   try {
     const response = await fetch(request);
-    if (response.ok && sameDocument(request, response)) {
-      await cache.put(request, response.clone());
-      await cacheAssetsIn(cache, request);
+    if (response.ok && sameDocument(request, response) && response.body) {
       const path = new URL(request.url).pathname;
-      if (path !== "/calendar") void prefetchCalendar(cache);
+      const stored = response.clone();
+      // Cache after returning so a streamed page can paint before the body ends.
+      event.waitUntil(
+        (async () => {
+          await cache.put(request, stored);
+          await cacheAssetsIn(cache, request);
+          if (path !== "/calendar") await prefetchCalendar(cache);
+        })()
+      );
     }
     return response;
   } catch {

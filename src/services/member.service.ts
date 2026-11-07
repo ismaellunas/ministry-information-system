@@ -68,6 +68,54 @@ export class MemberService {
     return saved;
   }
 
+  async createMany(
+    inputs: CreateMemberInput[]
+  ): Promise<Array<{ id: string; status: "created" | "failed"; error: string | null }>> {
+    if (inputs.length === 0) return [];
+    const rows = inputs.map((input) => ({ ...input, id: input.id ?? randomUUID() }));
+    for (const churchId of Array.from(new Set(rows.map((input) => input.churchId)))) {
+      this.assertChurchRep(churchId);
+    }
+    const ministries = await this.ministries.listAll();
+    const ready: Array<(typeof rows)[number] & { fullName: string; birthMonth: number | null; birthDay: number | null }> = [];
+    const results = new Map<string, { status: "created" | "failed"; error: string | null }>();
+    for (const input of rows) {
+      try {
+        const fields = this.checkedFields(ministries, input);
+        ready.push({ ...input, ...fields });
+      } catch (error) {
+        results.set(input.id, {
+          status: "failed",
+          error: error instanceof AppError ? error.message : "Could not add this member.",
+        });
+      }
+    }
+    const existing = new Set((await this.members.findManyByIds(ready.map((row) => row.id))).map((row) => row.id));
+    const fresh = ready.filter((row) => !existing.has(row.id));
+    if (fresh.length > 0) {
+      await this.members.createMany(
+        fresh.map((row) => ({
+          id: row.id,
+          churchId: row.churchId,
+          ministryId: row.ministryId,
+          fullName: row.fullName,
+          birthMonth: row.birthMonth,
+          birthDay: row.birthDay,
+          birthYear: row.birthYear ?? null,
+          createdBy: this.actor.id,
+        }))
+      );
+      await this.audit.record(this.actor.id, "member.create", "members", fresh[0].churchId, {
+        count: fresh.length,
+      });
+    }
+    for (const row of ready) results.set(row.id, { status: "created", error: null });
+    return rows.map((input) => {
+      const result = results.get(input.id) ?? { status: "failed" as const, error: "Could not add this member." };
+      return { id: input.id, ...result };
+    });
+  }
+
   async get(id: string): Promise<Member> {
     const existing = await this.members.findById(id);
     if (!existing) throw new AppError("NOT_FOUND", "Member not found.");
@@ -110,10 +158,21 @@ export class MemberService {
     birthMonth?: number | null;
     birthDay?: number | null;
   }): Promise<{ fullName: string; birthMonth: number | null; birthDay: number | null }> {
+    return this.checkedFields(await this.ministries.listAll(), input);
+  }
+
+  private checkedFields(
+    ministries: Awaited<ReturnType<MinistryRepository["listAll"]>>,
+    input: {
+      ministryId: number;
+      fullName: string;
+      birthMonth?: number | null;
+      birthDay?: number | null;
+    }
+  ): { fullName: string; birthMonth: number | null; birthDay: number | null } {
     const fullName = toProperCase(input.fullName);
     if (!fullName) throw new AppError("VALIDATION", "Enter the member's full name.");
 
-    const ministries = await this.ministries.listAll();
     const ministry = ministries.find((item) => item.id === input.ministryId);
     if (!ministry?.tracksMembership) {
       throw new AppError("VALIDATION", "Choose a valid department.");

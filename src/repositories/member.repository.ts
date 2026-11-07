@@ -1,19 +1,23 @@
 import type { Member, MemberBirthday } from "@/domain/types";
 
+export interface MemberInsert {
+  id: string;
+  churchId: string;
+  ministryId: number;
+  fullName: string;
+  birthMonth: number | null;
+  birthDay: number | null;
+  birthYear: number | null;
+  createdBy: string;
+}
+
 export interface MemberRepository {
   listBirthdaysInMonth(churchId: string, month: number): Promise<MemberBirthday[]>;
   listForChurch(churchId: string): Promise<Member[]>;
   findById(id: string): Promise<Member | null>;
-  create(input: {
-    id: string;
-    churchId: string;
-    ministryId: number;
-    fullName: string;
-    birthMonth: number | null;
-    birthDay: number | null;
-    birthYear: number | null;
-    createdBy: string;
-  }): Promise<Member>;
+  create(input: MemberInsert): Promise<Member>;
+  findManyByIds(ids: string[]): Promise<Member[]>;
+  createMany(rows: MemberInsert[]): Promise<Member[]>;
   update(
     id: string,
     patch: {

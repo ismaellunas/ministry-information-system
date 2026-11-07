@@ -20,7 +20,7 @@ const mutationSchema = z.object({
 });
 
 const bodySchema = z.object({
-  mutations: z.array(mutationSchema).max(50),
+  mutations: z.array(mutationSchema).max(80),
 });
 
 export async function POST(request: Request) {
@@ -34,10 +34,9 @@ export async function POST(request: Request) {
   }
 
   const { members } = await createServices(profile);
-  const results = [];
-  for (const mutation of parsed.data.mutations) {
-    try {
-      await members.create({
+  try {
+    const saved = await members.createMany(
+      parsed.data.mutations.map((mutation) => ({
         id: mutation.payload.id,
         churchId: mutation.churchId,
         ministryId: mutation.payload.ministryId,
@@ -45,16 +44,28 @@ export async function POST(request: Request) {
         birthMonth: mutation.payload.birthMonth,
         birthDay: mutation.payload.birthDay,
         birthYear: mutation.payload.birthYear,
-      });
-      results.push({ clientId: mutation.clientId ?? null, status: "created" as const, error: null });
-    } catch (error) {
-      results.push({
+      }))
+    );
+    const results = parsed.data.mutations.map((mutation, index) => {
+      const row = saved[index];
+      return {
         clientId: mutation.clientId ?? null,
-        status: "failed" as const,
-        error: error instanceof AppError ? error.message : "Could not add this member.",
-      });
-    }
+        status: row?.status === "created" ? ("created" as const) : ("failed" as const),
+        error: row?.status === "created" ? null : row?.error ?? "Could not add this member.",
+      };
+    });
+    return NextResponse.json({ results }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    const message = error instanceof AppError ? error.message : "Could not add these members.";
+    return NextResponse.json(
+      {
+        results: parsed.data.mutations.map((mutation) => ({
+          clientId: mutation.clientId ?? null,
+          status: "failed" as const,
+          error: message,
+        })),
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   }
-
-  return NextResponse.json({ results }, { headers: { "Cache-Control": "no-store" } });
 }
