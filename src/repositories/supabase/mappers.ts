@@ -40,6 +40,9 @@ export function toChurch(row: ChurchRow): Church {
     pastorLastName,
     pastorName: pastorName || null,
     pastorPhone: row.pastor_phone,
+    pastorBirthMonth: null,
+    pastorBirthDay: null,
+    pastorBirthYear: null,
     address: row.address,
     facebookPageUrl: row.facebook_page_url,
     hotlineNumber: row.hotline_number,
@@ -67,6 +70,8 @@ export function toProfile(row: ProfileRow, roles: ProfileRole[]): Profile {
     phoneNumber: row.phone_number,
     isActive: row.is_active,
     mustChangePassword: row.must_change_password,
+    isPastor: row.is_pastor ?? false,
+    ncmdcId: row.ncmdc_id ?? null,
     roles,
   };
 }

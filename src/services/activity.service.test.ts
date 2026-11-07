@@ -11,6 +11,8 @@ const actor: Profile = {
   phoneNumber: null,
   isActive: true,
   mustChangePassword: false,
+  isPastor: false,
+  ncmdcId: null,
   roles: [{ id: "r1", profileId: "admin", role: "ADMIN", churchId: null, ministryId: null }],
 };
 

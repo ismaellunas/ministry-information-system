@@ -11,7 +11,7 @@ import {
   updateUserFieldsSchema,
   userIdSchema,
 } from "@/domain/schemas";
-import { rolesFromUserForm } from "@/domain/user-form";
+import { pastorMarkFromUserForm, rolesFromUserForm } from "@/domain/user-form";
 import { fail, ok, type ActionResult } from "../_lib/action-result";
 
 export async function createUserAction(
@@ -26,12 +26,16 @@ export async function createUserAction(
       lastName: String(formData.get("last_name") ?? ""),
       phoneNumber: String(formData.get("phone") ?? ""),
     });
+    const roles = parseInput(
+      z.array(roleAssignmentSchema).min(1, "Assign at least one role."),
+      rolesFromUserForm(formData)
+    );
+    const pastor = pastorMarkFromUserForm(formData, roles);
     const created = await admin.createUser({
       ...fields,
-      roles: parseInput(
-        z.array(roleAssignmentSchema).min(1, "Assign at least one role."),
-        rolesFromUserForm(formData)
-      ),
+      roles,
+      isPastor: pastor.isPastor,
+      ncmdcId: pastor.ncmdcId,
     });
     revalidatePath("/admin/users");
     revalidatePath("/");
@@ -51,10 +55,14 @@ export async function updateUserAction(formData: FormData): Promise<ActionResult
       lastName: String(formData.get("last_name") ?? ""),
       phoneNumber: String(formData.get("phone") ?? ""),
     });
+    const isPastor = formData.get("is_pastor") === "on";
+    const ncmdcId = String(formData.get("ncmdc_id") ?? "").trim() || null;
     await admin.updateUser(fields.id, {
       firstName: fields.firstName,
       lastName: fields.lastName,
       phoneNumber: fields.phoneNumber,
+      isPastor,
+      ncmdcId: isPastor ? ncmdcId : null,
     });
     revalidatePath(`/admin/users/${fields.id}`);
     revalidatePath("/admin/users");

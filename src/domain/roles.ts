@@ -73,6 +73,11 @@ export function validateRoleSet(
   return null;
 }
 
+export function signedInRoleLabel(role: UserRole, isPastor: boolean): string {
+  if (isPastor && role === "CHURCH_REP") return "Pastor";
+  return roleLabel(role);
+}
+
 export function roleLabel(role: UserRole): string {
   switch (role) {
     case "ADMIN":

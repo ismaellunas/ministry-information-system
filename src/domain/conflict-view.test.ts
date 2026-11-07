@@ -14,6 +14,8 @@ function person(
     phoneNumber: null,
     isActive: active,
     mustChangePassword: false,
+    isPastor: false,
+    ncmdcId: null,
     roles: roles.map((role, index) => ({
       id: `${id}-${index}`,
       profileId: id,

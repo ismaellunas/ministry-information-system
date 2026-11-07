@@ -1,15 +1,27 @@
 import { Cake } from "lucide-react";
 import { format } from "date-fns";
 import { createServices, requireProfile } from "@/composition/server";
-import { nearestBirthdayThisMonth } from "@/domain/birthday";
+import { nearestBirthdayThisMonth, pastorBirthdayReminder } from "@/domain/birthday";
 import { todayManila } from "@/domain/time";
 import { HomeActionCard } from "./HomeActionCard";
 
 export async function UpcomingBirthdaysCard({ churchId }: { churchId: string }) {
   const actor = await requireProfile();
-  const { members } = await createServices(actor);
+  const { members, churches } = await createServices(actor);
   const [year, month, day] = todayManila().split("-").map(Number);
-  const candidates = await members.listBirthdaysInMonth(churchId, month);
+  const [memberBirthdays, church] = await Promise.all([
+    members.listBirthdaysInMonth(churchId, month),
+    churches.get(churchId),
+  ]);
+  const pastor = pastorBirthdayReminder(
+    {
+      name: church.pastorName,
+      birthMonth: church.pastorBirthMonth,
+      birthDay: church.pastorBirthDay,
+    },
+    month
+  );
+  const candidates = pastor ? [...memberBirthdays, pastor] : memberBirthdays;
   const nearest = nearestBirthdayThisMonth(candidates, day);
 
   if (!nearest) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { validateRoleSet } from "./roles";
 import type { Ministry } from "./types";
-import { rolesFromUserForm } from "./user-form";
+import { ncmdcIdError, pastorMarkFromUserForm, rolesFromUserForm } from "./user-form";
 
 const ministries: Pick<Ministry, "id" | "allowsChurchlessRep" | "name">[] = [
   { id: 1, allowsChurchlessRep: false, name: "Men's Ministry" },
@@ -39,5 +39,36 @@ describe("rolesFromUserForm", () => {
     expect(validateRoleSet(roles, ministries)).toBe(
       "The Presbytery must also represent a home church."
     );
+  });
+});
+
+describe("pastorMarkFromUserForm", () => {
+  it("keeps an optional NCMDC ID only for a church representative marked as pastor", () => {
+    const roles = rolesFromUserForm(form({ role_church: "on", church_id: churchId }));
+    expect(pastorMarkFromUserForm(form({ role_church: "on", is_pastor: "on", ncmdc_id: "NCM-12" }), roles)).toEqual({
+      isPastor: true,
+      ncmdcId: "NCM-12",
+    });
+    expect(ncmdcIdError("NCM-12")).toBeNull();
+  });
+
+  it("allows a pastor with no NCMDC ID", () => {
+    const roles = rolesFromUserForm(form({ role_church: "on", church_id: churchId }));
+    expect(pastorMarkFromUserForm(form({ is_pastor: "on" }), roles)).toEqual({
+      isPastor: true,
+      ncmdcId: null,
+    });
+  });
+
+  it("ignores a pastor mark when the person is not a church representative", () => {
+    const roles = rolesFromUserForm(form({ role_ministry: "on", ministry_id: "1" }));
+    expect(pastorMarkFromUserForm(form({ is_pastor: "on", ncmdc_id: "NCM-12" }), roles)).toEqual({
+      isPastor: false,
+      ncmdcId: null,
+    });
+  });
+
+  it("rejects an NCMDC ID with spaces or symbols", () => {
+    expect(ncmdcIdError("NCM 12")).toMatch(/letters, numbers, or hyphens/);
   });
 });

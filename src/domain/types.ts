@@ -42,6 +42,10 @@ export interface Church {
   /** Display name from first + last. */
   pastorName: string | null;
   pastorPhone: string | null;
+  /** Present only for Admin and this church's representatives. */
+  pastorBirthMonth: number | null;
+  pastorBirthDay: number | null;
+  pastorBirthYear: number | null;
   address: string | null;
   facebookPageUrl: string | null;
   hotlineNumber: string | null;
@@ -65,6 +69,10 @@ export interface Profile {
   phoneNumber: string | null;
   isActive: boolean;
   mustChangePassword: boolean;
+  /** Church representative who is the pastor. Distinct from other church reps. */
+  isPastor: boolean;
+  /** District MIS identifier. Set only when isPastor is true. */
+  ncmdcId: string | null;
   roles: ProfileRole[];
 }
 

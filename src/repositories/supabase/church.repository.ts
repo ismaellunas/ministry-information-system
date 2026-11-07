@@ -82,4 +82,56 @@ export class SupabaseChurchRepository implements ChurchRepository {
     const { error } = await this.db.from("churches").update({ logo_url: url }).eq("id", id);
     if (error) throw new AppError("DB", error.message);
   }
+
+  async findPastorBirthday(churchId: string) {
+    const { data, error } = await this.db
+      .from("church_pastor_birthdays")
+      .select("birth_month, birth_day, birth_year")
+      .eq("church_id", churchId)
+      .maybeSingle();
+    if (error) {
+      if (error.code === "PGRST205") return null;
+      throw new AppError("DB", error.message);
+    }
+    if (!data) return null;
+    return {
+      pastorBirthMonth: data.birth_month,
+      pastorBirthDay: data.birth_day,
+      pastorBirthYear: data.birth_year,
+    };
+  }
+
+  async savePastorBirthday(
+    churchId: string,
+    birthday: {
+      pastorBirthMonth: number | null;
+      pastorBirthDay: number | null;
+      pastorBirthYear: number | null;
+    }
+  ): Promise<void> {
+    if (
+      birthday.pastorBirthMonth == null &&
+      birthday.pastorBirthDay == null &&
+      birthday.pastorBirthYear == null
+    ) {
+      const { error } = await this.db.from("church_pastor_birthdays").delete().eq("church_id", churchId);
+      if (error && error.code !== "PGRST205") throw new AppError("DB", error.message);
+      return;
+    }
+    const { error } = await this.db.from("church_pastor_birthdays").upsert(
+      {
+        church_id: churchId,
+        birth_month: birthday.pastorBirthMonth,
+        birth_day: birthday.pastorBirthDay,
+        birth_year: birthday.pastorBirthYear,
+      },
+      { onConflict: "church_id" }
+    );
+    if (error) {
+      if (error.code === "PGRST205") {
+        throw new AppError("DB", "Pastor birthdays are not available until the database update is applied.");
+      }
+      throw new AppError("DB", error.message);
+    }
+  }
 }

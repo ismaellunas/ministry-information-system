@@ -7,6 +7,9 @@ export type ChurchRepUpdateFields = Partial<
     | "pastorLastName"
     | "pastorName"
     | "pastorPhone"
+    | "pastorBirthMonth"
+    | "pastorBirthDay"
+    | "pastorBirthYear"
     | "address"
     | "facebookPageUrl"
     | "hotlineNumber"
@@ -24,4 +27,17 @@ export interface ChurchRepository {
   /** Church rep — restricted columns only. */
   repUpdate(id: string, data: ChurchRepUpdateFields): Promise<Church>;
   updateLogoUrl(id: string, url: string): Promise<void>;
+  findPastorBirthday(churchId: string): Promise<{
+    pastorBirthMonth: number | null;
+    pastorBirthDay: number | null;
+    pastorBirthYear: number | null;
+  } | null>;
+  savePastorBirthday(
+    churchId: string,
+    birthday: {
+      pastorBirthMonth: number | null;
+      pastorBirthDay: number | null;
+      pastorBirthYear: number | null;
+    }
+  ): Promise<void>;
 }

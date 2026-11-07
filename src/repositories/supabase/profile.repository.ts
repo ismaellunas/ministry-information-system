@@ -40,6 +40,8 @@ export class SupabaseProfileRepository implements ProfileRepository {
         last_name: profile.lastName,
         phone_number: profile.phoneNumber,
         must_change_password: profile.mustChangePassword,
+        is_pastor: profile.isPastor,
+        ncmdc_id: profile.ncmdcId,
         is_active: true,
       })
       .select("*")
@@ -60,6 +62,14 @@ export class SupabaseProfileRepository implements ProfileRepository {
     if (error) throw new AppError("DB", error.message);
     const roles = await this.listRoles(id);
     return toProfile(row, roles);
+  }
+
+  async setPastorMark(id: string, isPastor: boolean, ncmdcId: string | null): Promise<void> {
+    const { error } = await this.db
+      .from("profiles")
+      .update({ is_pastor: isPastor, ncmdc_id: isPastor ? ncmdcId : null })
+      .eq("id", id);
+    if (error) throw new AppError("DB", error.message);
   }
 
   async setMustChangePassword(id: string, value: boolean): Promise<void> {

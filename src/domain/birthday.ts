@@ -43,6 +43,51 @@ export function isFirstSundayOfMonth(date: Date): boolean {
  * Picks the nearest birthday from a list already filtered to the current month:
  * the closest day on or after today, or the earliest day if none remain.
  */
+export function daysInBirthMonth(month: number): number {
+  if (month === 2) return 29;
+  if (month === 4 || month === 6 || month === 9 || month === 11) return 30;
+  return 31;
+}
+
+/** Pastor birthday rules. Year is stored, and is not part of a reminder. */
+export function pastorBirthdayError(
+  birthMonth: number | null,
+  birthDay: number | null,
+  birthYear: number | null,
+  thisYear = new Date().getFullYear()
+): string | null {
+  if ((birthMonth == null) !== (birthDay == null)) {
+    return "Enter both birth month and day, or leave both blank.";
+  }
+  if (birthYear != null && birthMonth == null) {
+    return "Enter the birth month and day before the year.";
+  }
+  if (birthMonth != null && (birthMonth < 1 || birthMonth > 12)) {
+    return "Enter a birth month from 1 to 12.";
+  }
+  if (birthMonth != null && birthDay != null && (birthDay < 1 || birthDay > daysInBirthMonth(birthMonth))) {
+    return "Enter a real birth date.";
+  }
+  if (birthYear != null && (birthYear < 1900 || birthYear > thisYear)) {
+    return `Enter a birth year from 1900 through ${thisYear}.`;
+  }
+  return null;
+}
+
+/** A reminder line for this month. The year is never included. */
+export function pastorBirthdayReminder(
+  pastor: { name: string | null; birthMonth: number | null; birthDay: number | null },
+  month: number
+): { id: string; fullName: string; birthMonth: number; birthDay: number } | null {
+  if (pastor.birthMonth !== month || pastor.birthDay == null) return null;
+  return {
+    id: "pastor",
+    fullName: pastor.name ? `Pastor ${pastor.name}` : "Pastor",
+    birthMonth: pastor.birthMonth,
+    birthDay: pastor.birthDay,
+  };
+}
+
 export function nearestBirthdayThisMonth<T extends { birthDay: number }>(
   members: T[],
   todayDay: number

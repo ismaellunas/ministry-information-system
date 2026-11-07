@@ -11,6 +11,8 @@ function person(roles: Profile["roles"], id = "user-1"): Profile {
     phoneNumber: "09170000000",
     isActive: true,
     mustChangePassword: false,
+    isPastor: false,
+    ncmdcId: null,
     roles,
   };
 }

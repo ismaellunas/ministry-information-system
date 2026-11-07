@@ -53,6 +53,8 @@ export function parseUserRole(value: string): UserRole {
 export const churchNameSchema = z.string().trim().min(1, "Church name is required.");
 export const churchIdSchema = z.string().uuid("Church not found.");
 
+const optionalFormNumber = z.number().int().nullable();
+
 export const directoryFieldsSchema = z.object({
   pastorFirstName: z.string(),
   pastorLastName: z.string(),
@@ -61,6 +63,9 @@ export const directoryFieldsSchema = z.object({
   facebookPageUrl: z.string(),
   hotlineNumber: z.string(),
   mapPinUrl: z.string(),
+  pastorBirthMonth: optionalFormNumber,
+  pastorBirthDay: optionalFormNumber,
+  pastorBirthYear: optionalFormNumber,
 });
 
 export const createMemberSchema = z

@@ -108,6 +108,51 @@ export function DirectoryForm({ church, canClose }: { church: Church; canClose: 
           label="Pastor phone"
           defaultValue={church.pastorPhone}
         />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-gray-700">Pastor birthday</p>
+          <p className="page-copy">The year stays on this record. Birthday reminders show the month and day only.</p>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="pastor_birth_month">Month</Label>
+            <Input
+              id="pastor_birth_month"
+              name="pastor_birth_month"
+              type="number"
+              min={1}
+              max={12}
+              inputMode="numeric"
+              placeholder="MM"
+              defaultValue={church.pastorBirthMonth ?? ""}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="pastor_birth_day">Day</Label>
+            <Input
+              id="pastor_birth_day"
+              name="pastor_birth_day"
+              type="number"
+              min={1}
+              max={31}
+              inputMode="numeric"
+              placeholder="DD"
+              defaultValue={church.pastorBirthDay ?? ""}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="pastor_birth_year">Year</Label>
+            <Input
+              id="pastor_birth_year"
+              name="pastor_birth_year"
+              type="number"
+              min={1900}
+              max={new Date().getFullYear()}
+              inputMode="numeric"
+              placeholder="YYYY"
+              defaultValue={church.pastorBirthYear ?? ""}
+            />
+          </div>
+        </div>
         <PhoneField
           id="hotline_number"
           label="Hotline"
@@ -181,6 +226,9 @@ function directorySignature(church: Church) {
     church.pastorFirstName ?? "",
     church.pastorLastName ?? "",
     church.pastorPhone ?? "",
+    church.pastorBirthMonth ?? "",
+    church.pastorBirthDay ?? "",
+    church.pastorBirthYear ?? "",
     church.hotlineNumber ?? "",
     church.address ?? "",
     church.facebookPageUrl ?? "",
@@ -189,7 +237,7 @@ function directorySignature(church: Church) {
 }
 
 function directorySignatureFromForm(formData: FormData) {
-  return ["pastor_first_name", "pastor_last_name", "pastor_phone", "hotline_number", "address", "facebook_page_url", "map_pin_url"]
+  return ["pastor_first_name", "pastor_last_name", "pastor_phone", "pastor_birth_month", "pastor_birth_day", "pastor_birth_year", "hotline_number", "address", "facebook_page_url", "map_pin_url"]
     .map((name) => String(formData.get(name) ?? ""))
     .join("\n");
 }

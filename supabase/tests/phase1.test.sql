@@ -3,10 +3,11 @@
 
 begin;
 
-select plan(21);
+select plan(23);
 
 -- Tables exist
 select has_table('public', 'churches', 'churches table exists');
+select has_table('public', 'church_pastor_birthdays', 'church pastor birthdays table exists');
 select has_table('public', 'ministries', 'ministries table exists');
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'profile_roles', 'profile_roles table exists');
@@ -32,6 +33,12 @@ select is(
   (select count(*)::int from public.ministries where allows_churchless_rep),
   1,
   'Only EVANGELISM allows a churchless rep'
+);
+
+select is(
+  (select name from public.ministries where code = 'EVANGELISM'),
+  'Missions',
+  'Evangelism is labeled Missions'
 );
 
 -- Enums exist

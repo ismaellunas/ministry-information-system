@@ -65,7 +65,7 @@ supabase/
 | Role | Key constraint |
 |---|---|
 | `CHURCH_REP` | Scoped to one church. At least one per active church (enforced). |
-| `SECTION_MINISTRY_REP` | One per ministry. Must also be a church rep except EVANGELISM. |
+| `SECTION_MINISTRY_REP` | One per ministry. Must also be a church rep except Missions (`EVANGELISM`). |
 | `SECTION_PRESBYTERY` | Exactly one. Must also be a CHURCH_REP for a home church. |
 | `ADMIN` | Cannot combine with any other role. Sees membership **counts only** (no names). |
 
@@ -79,6 +79,9 @@ supabase/
 | `20250101000002_functions.sql` | `set_updated_at()` and `touch_row()` triggers |
 | `20250101000003_churches.sql` | `churches` table |
 | `20250101000004_ministries.sql` | `ministries` table + seed rows (MM, WM, YA, CE, MUSIC, EVANGELISM) |
+| `20250101000017_rename_evangelism_to_missions.sql` | Display name of `EVANGELISM` is Missions |
+| `20250101000018_pastor_birthday.sql` | Pastor birthday record, readable by Admin and that church's reps |
+| `20250101000019_pastor_ncmdc.sql` | Pastor mark and optional NCMDC ID on the profile |
 | `20250101000005_profiles.sql` | `profiles` table |
 | `20250101000006_profile_roles.sql` | `profile_roles` table + unique indexes |
 | `20250101000007_remaining_tables.sql` | `members`, `church_department_counts`, `activities`, `activity_conflicts`, `notifications`, `push_subscriptions`, `audit_log` |
@@ -246,6 +249,83 @@ supabase/
 **Decisions made:** "Represents a church" is every `CHURCH_REP` role with a church id (`churchRepChurchIds`). A Presbytery's home church is included because that role also requires church rep. An Admin represents none, so the whole directory stays under search. Search still matches name, pastor, phone, hotline, address, and active/closed.
 
 **Agent notes:** Browser check used the local seed admin, who represents no church, so the pinned section was not on screen. Search, the closed church AG Baikingon, phone width, and the `md` sidebar were checked. A church-rep sign-in was not available.
+
+---
+
+### 2026-11-07 — Cursor (Reset test data and seed production admin)
+
+**What:** Added `npm run db:reset-data -- --confirm`, which clears application data on the Supabase project in `.env.local` and creates one admin.
+
+**Why:** Production day will reuse the current Supabase project. Test churches, members, events, and logins need to be removed without dropping the schema or the ministry list.
+
+**Files changed:**
+- `scripts/reset-data.mjs` — deletes app rows, church logos, and auth users, then creates `admin@west.info`
+- `package.json` — `db:reset-data` script
+
+**Decisions made:** The script refuses to run without `--confirm`. It keeps `ministries`. The admin is West Adminstrator, password `secret`, with `must_change_password` false so that password signs in. Local `supabase/seed.sql` is unchanged and still seeds the development churches.
+
+**Agent notes:** Point `.env.local` at the project to wipe before running. This was not executed.
+
+---
+
+### 2026-11-07 — Cursor (Rename Evangelism ministry option to Missions)
+
+**What:** The ministry option labeled Evangelism now reads Missions when a user is added.
+
+**Why:** The user asked for that dropdown option to say Missions.
+
+**Approved deviation (2026-11-07):** Blueprint §6 and the ministry table name this row Evangelism and say Missions is absent. The display name is now Missions. The code stays `EVANGELISM`, so existing assignments remain on the same row. It still does not track membership, and a rep of this ministry may still have no church.
+
+**Files changed:**
+- `supabase/migrations/20250101000017_rename_evangelism_to_missions.sql` — updates `ministries.name`
+- `supabase/tests/phase1.test.sql` — asserts the label
+- `src/domain/roles.test.ts` — fixture and test name use Missions
+
+**Decisions made:** Only the visible name changes. The dropdown already renders `ministry.name`.
+
+**Agent notes:** The hosted project's `EVANGELISM` row was renamed to Missions through the service role. `supabase db push` could not record the migration because the database password was rejected. The update is safe to run again when the password is available.
+
+---
+
+### 2026-11-07 — Cursor (Pastor birthday on the church record)
+
+**What:** A church's pastor birthday can be saved with the pastor's name. That church's birthday reminder includes the pastor. The year is stored and is not shown in the reminder or the directory.
+
+**Why:** The pastor's birthday was missing. It stays out of the calendar. It belongs with the other birthday reminders for that church, and the year is a record rather than something the rest of the section sees.
+
+**Approved deviation (2026-11-07):** Blueprint §8.3 sends birthday reminders for members only, and §10.4 does not list a pastor birthday on the directory. The birthday is a separate `church_pastor_birthdays` row, not a member and not an activity. Admin and that church's representatives can read and edit the month, day, and year. Everyone else cannot read the row. The home reminder shows month and day only.
+
+**Files changed:**
+- `supabase/migrations/20250101000018_pastor_birthday.sql` — table and row-level security
+- `src/domain/birthday.ts` — validation and the reminder line
+- `src/services/church.service.ts` — saves the birthday with the directory and returns it only to people who may edit that church
+- `src/app/(app)/churches/_components/ChurchForms.tsx` — month, day, and year fields
+- `src/app/(app)/_components/UpcomingBirthdaysCard.tsx` — includes the pastor in this month's reminder
+
+**Decisions made:** The offline directory cache strips the birthday so a phone copy of the directory cannot carry the year.
+
+**Agent notes:** The hosted database still needs this migration applied. The database password was rejected on the last `supabase db push`, so saving a pastor birthday will fail until then.
+
+---
+
+### 2026-11-07 — Cursor (Pastor mark and NCMDC ID)
+
+**What:** Adding a church representative can mark that person as the pastor and store an optional NCMDC ID. The dashboard user card shows Pastor instead of Church representative, and shows the ID when it is set.
+
+**Why:** A pastor login was only a church representative, so the app could not tell a pastor from another rep. The NCMDC ID is the person's identifier in the District MIS.
+
+**Approved deviation (2026-11-07):** Blueprint roles do not include a pastor flag or a district identifier. `profiles.is_pastor` is separate from `CHURCH_REP`. The ID is optional and is stored only for a pastor. A person who is not a church representative cannot be a pastor. Removing their last church-representative role clears the mark and the ID.
+
+**Files changed:**
+- `supabase/migrations/20250101000019_pastor_ncmdc.sql` — columns, checks, and a trigger so only Admin can change them
+- `src/domain/user-form.ts` — reads the pastor mark and ID from the create-user form
+- `src/app/(app)/admin/_components/CreateUserForm.tsx` — Pastor checkbox and optional NCMDC ID
+- `src/app/(app)/admin/_components/UserManageForms.tsx` — the same fields on an existing church representative
+- `src/app/(app)/_components/ChurchHeroCard.tsx` and `SectionHeroCard.tsx` — dashboard user line
+
+**Decisions made:** The church's pastor name stays a directory field. It is not used to guess which login is the pastor.
+
+**Agent notes:** The hosted database still needs this migration. Until then, saving the mark fails and existing profiles are treated as not pastors.
 
 ---
 

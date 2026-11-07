@@ -19,6 +19,22 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["churches"]["Insert"]>;
         Relationships: [];
       };
+      church_pastor_birthdays: {
+        Row: {
+          church_id: string;
+          birth_month: number | null;
+          birth_day: number | null;
+          birth_year: number | null;
+        };
+        Insert: {
+          church_id: string;
+          birth_month?: number | null;
+          birth_day?: number | null;
+          birth_year?: number | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["church_pastor_birthdays"]["Insert"]>;
+        Relationships: [];
+      };
       ministries: {
         Row: { id: number; code: string; name: string; tracks_membership: boolean; allows_churchless_rep: boolean };
         Insert: never;
@@ -29,7 +45,9 @@ export type Database = {
         Row: {
           id: string; first_name: string; last_name: string;
           phone_number: string | null; is_active: boolean;
-          must_change_password: boolean; created_at: string; updated_at: string;
+          must_change_password: boolean;
+          is_pastor?: boolean; ncmdc_id?: string | null;
+          created_at: string; updated_at: string;
         };
         Insert: Omit<Database["public"]["Tables"]["profiles"]["Row"], "created_at" | "updated_at">;
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;

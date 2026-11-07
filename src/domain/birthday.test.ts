@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { celebrationDate, isBirthdayToday, isFirstSundayOfMonth, nearestBirthdayThisMonth } from "./birthday";
+import {
+  celebrationDate,
+  isBirthdayToday,
+  isFirstSundayOfMonth,
+  nearestBirthdayThisMonth,
+  pastorBirthdayError,
+  pastorBirthdayReminder,
+} from "./birthday";
 
 describe("celebrationDate", () => {
   it("Feb 29 in leap year stays Feb 29", () => {
@@ -34,6 +41,34 @@ describe("isFirstSundayOfMonth", () => {
   });
   it("Monday → false", () => {
     expect(isFirstSundayOfMonth(new Date("2025-01-06T00:00:00"))).toBe(false);
+  });
+});
+
+describe("pastor birthday", () => {
+  it("requires month and day together", () => {
+    expect(pastorBirthdayError(5, null, null)).toBe("Enter both birth month and day, or leave both blank.");
+    expect(pastorBirthdayError(null, null, null)).toBeNull();
+  });
+
+  it("keeps the year only with a month and day", () => {
+    expect(pastorBirthdayError(null, null, 1970)).toMatch(/month and day/);
+    expect(pastorBirthdayError(5, 18, 1970)).toBeNull();
+  });
+
+  it("rejects a day that month does not have", () => {
+    expect(pastorBirthdayError(4, 31, 1970)).toBe("Enter a real birth date.");
+  });
+
+  it("builds a reminder without the year", () => {
+    expect(
+      pastorBirthdayReminder({ name: "Juan Cruz", birthMonth: 5, birthDay: 18 }, 5)
+    ).toEqual({
+      id: "pastor",
+      fullName: "Pastor Juan Cruz",
+      birthMonth: 5,
+      birthDay: 18,
+    });
+    expect(pastorBirthdayReminder({ name: "Juan Cruz", birthMonth: 5, birthDay: 18 }, 6)).toBeNull();
   });
 });
 

@@ -1,5 +1,5 @@
 import { Building2, MapPin, Phone, User } from "lucide-react";
-import { roleLabel } from "@/domain/roles";
+import { signedInRoleLabel } from "@/domain/roles";
 import type { Church, Profile, UserRole } from "@/domain/types";
 
 export function ChurchHeroCard({
@@ -29,8 +29,14 @@ export function ChurchHeroCard({
         </p>
         <p className="flex items-center gap-2">
           <User className="h-4 w-4 shrink-0" />
-          {actor.firstName} {actor.lastName} · {roleLabel(role)}
+          {actor.firstName} {actor.lastName} · {signedInRoleLabel(role, actor.isPastor)}
         </p>
+        {actor.isPastor && actor.ncmdcId && (
+          <p className="flex items-center gap-2">
+            <span className="h-4 w-4 shrink-0" aria-hidden="true" />
+            NCMDC {actor.ncmdcId}
+          </p>
+        )}
       </div>
     </div>
   );

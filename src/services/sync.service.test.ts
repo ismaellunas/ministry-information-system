@@ -12,6 +12,8 @@ const rep: Profile = {
   phoneNumber: null,
   isActive: true,
   mustChangePassword: false,
+  isPastor: false,
+  ncmdcId: null,
   roles: [{ id: "r1", profileId: "rep", role: "CHURCH_REP", churchId: "church-a", ministryId: null }],
 };
 

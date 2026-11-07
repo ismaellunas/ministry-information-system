@@ -6,6 +6,8 @@ export interface NewProfile {
   lastName: string;
   phoneNumber: string | null;
   mustChangePassword: boolean;
+  isPastor: boolean;
+  ncmdcId: string | null;
 }
 
 export interface ProfileRepository {
@@ -17,6 +19,7 @@ export interface ProfileRepository {
     data: Partial<Pick<Profile, "firstName" | "lastName" | "phoneNumber">>
   ): Promise<Profile>;
   setMustChangePassword(id: string, value: boolean): Promise<void>;
+  setPastorMark(id: string, isPastor: boolean, ncmdcId: string | null): Promise<void>;
   setActive(id: string, value: boolean): Promise<void>;
   addRole(
     profileId: string,

@@ -24,6 +24,7 @@ export function CreateUserForm({
   const [churchRep, setChurchRep] = useState(true);
   const [presbytery, setPresbytery] = useState(false);
   const [ministryRep, setMinistryRep] = useState(false);
+  const [pastor, setPastor] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -82,6 +83,7 @@ export function CreateUserForm({
                 setChurchRep(false);
                 setPresbytery(false);
                 setMinistryRep(false);
+                setPastor(false);
               }
             }}
           />
@@ -94,7 +96,10 @@ export function CreateUserForm({
             className="h-5 w-5 rounded border-gray-300"
             checked={churchRep}
             disabled={admin || presbytery}
-            onChange={(event) => setChurchRep(event.target.checked)}
+            onChange={(event) => {
+              setChurchRep(event.target.checked);
+              if (!event.target.checked) setPastor(false);
+            }}
           />
           {presbytery && !admin && <input type="hidden" name="role_church" value="on" />}
           Church representative
@@ -108,6 +113,27 @@ export function CreateUserForm({
                 <option key={church.id} value={church.id}>{church.name}</option>
               ))}
             </Select>
+          </div>
+        )}
+        {(churchRep || presbytery) && !admin && (
+          <div className="space-y-3">
+            <label className="flex min-h-11 items-center gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="is_pastor"
+                className="h-5 w-5 rounded border-gray-300"
+                checked={pastor}
+                onChange={(event) => setPastor(event.target.checked)}
+              />
+              Pastor
+            </label>
+            {pastor && (
+              <div className="space-y-1">
+                <Label htmlFor="ncmdc_id">NCMDC ID</Label>
+                <Input id="ncmdc_id" name="ncmdc_id" autoComplete="off" placeholder="Optional" />
+                <p className="page-copy">District MIS identifier. Leave blank if this pastor does not have one yet.</p>
+              </div>
+            )}
           </div>
         )}
         <label className="flex min-h-11 items-center gap-3 text-sm text-gray-700">

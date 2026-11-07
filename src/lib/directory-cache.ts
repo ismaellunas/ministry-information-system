@@ -10,10 +10,14 @@ export interface DirectoryMinistry {
 
 export function rememberDirectory(churches: Church[]) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(churches));
+    localStorage.setItem(KEY, JSON.stringify(churches.map(withoutPastorBirthday)));
   } catch {
     // A private window or a full disk. The directory that is already open still shows.
   }
+}
+
+function withoutPastorBirthday(church: Church): Church {
+  return { ...church, pastorBirthMonth: null, pastorBirthDay: null, pastorBirthYear: null };
 }
 
 export function rememberChurch(church: Church) {

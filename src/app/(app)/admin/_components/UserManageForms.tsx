@@ -19,6 +19,26 @@ import {
 } from "@/app/(app)/admin/actions";
 import { PasswordReveal } from "./PasswordReveal";
 
+function accountSignature(profile: Profile): string {
+  return [
+    profile.firstName,
+    profile.lastName,
+    profile.phoneNumber ?? "",
+    profile.isPastor ? "pastor" : "",
+    profile.ncmdcId ?? "",
+  ].join("\n");
+}
+
+function accountSignatureFromForm(formData: FormData): string {
+  return [
+    String(formData.get("first_name") ?? ""),
+    String(formData.get("last_name") ?? ""),
+    String(formData.get("phone") ?? ""),
+    formData.get("is_pastor") === "on" ? "pastor" : "",
+    String(formData.get("ncmdc_id") ?? ""),
+  ].join("\n");
+}
+
 export function UserManageForms({
   profile,
   email,
@@ -34,7 +54,9 @@ export function UserManageForms({
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState<string | null>(null);
   const [roleKind, setRoleKind] = useState("CHURCH_REP");
-  const savedAccount = useRef(`${profile.firstName}\n${profile.lastName}\n${profile.phoneNumber ?? ""}`);
+  const [pastor, setPastor] = useState(profile.isPastor);
+  const savedAccount = useRef(accountSignature(profile));
+  const churchRep = profile.roles.some((role) => role.role === "CHURCH_REP");
 
   async function run(
     action: (formData: FormData) => Promise<{ ok: true } | { ok: false; error: string }>,
@@ -59,7 +81,7 @@ export function UserManageForms({
         <AutosaveForm
           className="mt-4 space-y-3"
           save={async (formData) => {
-            const next = `${String(formData.get("first_name") ?? "")}\n${String(formData.get("last_name") ?? "")}\n${String(formData.get("phone") ?? "")}`;
+            const next = accountSignatureFromForm(formData);
             if (next === savedAccount.current) return false;
             const result = await updateUserAction(formData);
             if (!result.ok) return result.error;
@@ -80,6 +102,31 @@ export function UserManageForms({
             <Label htmlFor="phone">Phone</Label>
             <Input id="phone" name="phone" type="tel" defaultValue={profile.phoneNumber ?? ""} />
           </div>
+          {churchRep && (
+            <label className="flex min-h-11 items-center gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="is_pastor"
+                className="h-5 w-5 rounded border-gray-300"
+                checked={pastor}
+                onChange={(event) => setPastor(event.target.checked)}
+              />
+              Pastor
+            </label>
+          )}
+          {churchRep && pastor && (
+            <div className="space-y-1">
+              <Label htmlFor="ncmdc_id">NCMDC ID</Label>
+              <Input
+                id="ncmdc_id"
+                name="ncmdc_id"
+                autoComplete="off"
+                placeholder="Optional"
+                defaultValue={profile.ncmdcId ?? ""}
+              />
+              <p className="page-copy">District MIS identifier. Leave blank if this pastor does not have one yet.</p>
+            </div>
+          )}
         </AutosaveForm>
       </section>
 

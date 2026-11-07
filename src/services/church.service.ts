@@ -1,3 +1,4 @@
+import { pastorBirthdayError } from "@/domain/birthday";
 import {
   canonicalMapPinUrl,
   encodePastorName,
@@ -35,7 +36,10 @@ export class ChurchService {
   async get(id: string): Promise<Church> {
     const church = await this.churches.findById(id);
     if (!church) throw new AppError("NOT_FOUND", "Church not found.");
-    return church;
+    if (!this.canEditDirectory(church.id)) return church;
+    const birthday = await this.churches.findPastorBirthday(id);
+    if (!birthday) return church;
+    return { ...church, ...birthday };
   }
 
   async create(name: string): Promise<Church> {
@@ -48,6 +52,9 @@ export class ChurchService {
       pastorLastName: null,
       pastorName: null,
       pastorPhone: null,
+      pastorBirthMonth: null,
+      pastorBirthDay: null,
+      pastorBirthYear: null,
       address: null,
       facebookPageUrl: null,
       hotlineNumber: null,
@@ -88,11 +95,29 @@ export class ChurchService {
       throw new AppError("FORBIDDEN", "You cannot edit this church's directory.");
     }
     const patch = await sanitizeDirectory(data);
+    const birthdayError = pastorBirthdayError(
+      patch.pastorBirthMonth ?? null,
+      patch.pastorBirthDay ?? null,
+      patch.pastorBirthYear ?? null
+    );
+    if (birthdayError) throw new AppError("VALIDATION", birthdayError);
+    const { pastorBirthMonth, pastorBirthDay, pastorBirthYear, ...directory } = patch;
     const updated = this.isAdmin()
-      ? await this.churches.adminUpdate(id, patch)
-      : await this.churches.repUpdate(id, patch);
+      ? await this.churches.adminUpdate(id, directory)
+      : await this.churches.repUpdate(id, directory);
+    if (
+      pastorBirthMonth !== undefined ||
+      pastorBirthDay !== undefined ||
+      pastorBirthYear !== undefined
+    ) {
+      await this.churches.savePastorBirthday(id, {
+        pastorBirthMonth: pastorBirthMonth ?? null,
+        pastorBirthDay: pastorBirthDay ?? null,
+        pastorBirthYear: pastorBirthYear ?? null,
+      });
+    }
     await this.audit.record(this.actor.id, "church.directory.update", "church", id, null);
-    return updated;
+    return { ...updated, pastorBirthMonth: pastorBirthMonth ?? null, pastorBirthDay: pastorBirthDay ?? null, pastorBirthYear: pastorBirthYear ?? null };
   }
 
   async uploadLogo(id: string, file: File): Promise<Church> {
@@ -156,6 +181,9 @@ async function sanitizeDirectory(data: ChurchRepUpdateFields): Promise<ChurchRep
       data.hotlineNumber === undefined ? undefined : parsePhone(data.hotlineNumber ?? "", "Hotline"),
     mapPinUrl: data.mapPinUrl === undefined ? undefined : await resolveMapPin(data.mapPinUrl ?? ""),
     logoUrl: data.logoUrl,
+    pastorBirthMonth: data.pastorBirthMonth,
+    pastorBirthDay: data.pastorBirthDay,
+    pastorBirthYear: data.pastorBirthYear,
   };
 }
 

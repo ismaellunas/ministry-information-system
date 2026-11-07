@@ -25,6 +25,8 @@ function person(roles: ProfileRole[]): Profile {
     phoneNumber: null,
     isActive: true,
     mustChangePassword: false,
+    isPastor: false,
+    ncmdcId: null,
     roles,
   };
 }

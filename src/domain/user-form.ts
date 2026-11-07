@@ -1,5 +1,7 @@
 import type { RoleAssignment } from "./types";
 
+const NCMDC_ID = /^[A-Za-z0-9-]{1,40}$/;
+
 /**
  * Roles from the create-user form.
  * Presbytery must also be a church rep. The church dropdown is that home church,
@@ -31,4 +33,25 @@ export function rolesFromUserForm(formData: FormData): RoleAssignment[] {
     });
   }
   return roles;
+}
+
+/** A pastor is a church representative. The NCMDC ID is optional and only kept for a pastor. */
+export function pastorMarkFromUserForm(
+  formData: FormData,
+  roles: RoleAssignment[]
+): { isPastor: boolean; ncmdcId: string | null } {
+  const churchRep = roles.some((role) => role.role === "CHURCH_REP");
+  const isPastor = churchRep && formData.get("is_pastor") === "on";
+  const raw = String(formData.get("ncmdc_id") ?? "").trim();
+  if (!isPastor) return { isPastor: false, ncmdcId: null };
+  if (!raw) return { isPastor: true, ncmdcId: null };
+  return { isPastor: true, ncmdcId: raw };
+}
+
+export function ncmdcIdError(ncmdcId: string | null): string | null {
+  if (ncmdcId == null) return null;
+  if (!NCMDC_ID.test(ncmdcId)) {
+    return "Enter the NCMDC ID with letters, numbers, or hyphens.";
+  }
+  return null;
 }

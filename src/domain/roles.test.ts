@@ -4,7 +4,7 @@ import type { Ministry, RoleAssignment } from "./types";
 
 const ministries: Pick<Ministry, "id" | "allowsChurchlessRep" | "name">[] = [
   { id: 1, allowsChurchlessRep: false, name: "Men's Ministry" },
-  { id: 6, allowsChurchlessRep: true, name: "Evangelism" },
+  { id: 6, allowsChurchlessRep: true, name: "Missions" },
 ];
 
 function set(roles: RoleAssignment[]) {
@@ -52,7 +52,7 @@ describe("validateRoleSet", () => {
     ).toMatch(/must also be a church representative/);
   });
 
-  it("allows evangelism without a church", () => {
+  it("allows Missions without a church", () => {
     expect(
       set([{ role: "SECTION_MINISTRY_REP", churchId: null, ministryId: 6 }])
     ).toBeNull();

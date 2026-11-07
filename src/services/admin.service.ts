@@ -1,4 +1,5 @@
 import { AppError } from "@/domain/errors";
+import { ncmdcIdError } from "@/domain/user-form";
 import { generateTemporaryPassword } from "@/domain/password";
 import { validateRoleSet } from "@/domain/roles";
 import type { AuditEntry, Church, Ministry, Profile, RoleAssignment, UserRole } from "@/domain/types";
@@ -59,6 +60,8 @@ export class AdminService {
     lastName: string;
     phoneNumber: string | null;
     roles: RoleAssignment[];
+    isPastor: boolean;
+    ncmdcId: string | null;
   }): Promise<{ user: AdminUserView; temporaryPassword: string }> {
     this.assertAdmin();
     const email = input.email.trim().toLowerCase();
@@ -69,6 +72,9 @@ export class AdminService {
     if (input.roles.length === 0) {
       throw new AppError("VALIDATION", "Assign at least one role.");
     }
+    const pastorError = ncmdcIdError(input.ncmdcId);
+    if (pastorError) throw new AppError("VALIDATION", pastorError);
+    const isPastor = input.isPastor && input.roles.some((role) => role.role === "CHURCH_REP");
 
     const ministries = await this.ministries.listAll();
     const churches = await this.churches.listAll(true);
@@ -95,6 +101,8 @@ export class AdminService {
         lastName: input.lastName.trim(),
         phoneNumber: input.phoneNumber?.trim() || null,
         mustChangePassword: true,
+        isPastor,
+        ncmdcId: isPastor ? input.ncmdcId : null,
       });
       for (const role of input.roles) {
         await this.profiles.addRole(userId, role.role, role.churchId, role.ministryId);
@@ -113,19 +121,33 @@ export class AdminService {
 
   async updateUser(
     id: string,
-    data: { firstName: string; lastName: string; phoneNumber: string | null }
+    data: {
+      firstName: string;
+      lastName: string;
+      phoneNumber: string | null;
+      isPastor: boolean;
+      ncmdcId: string | null;
+    }
   ): Promise<Profile> {
     this.assertAdmin();
     if (!data.firstName.trim() || !data.lastName.trim()) {
       throw new AppError("VALIDATION", "First and last name are required.");
     }
-    const profile = await this.profiles.updateOwn(id, {
+    const pastorError = ncmdcIdError(data.ncmdcId);
+    if (pastorError) throw new AppError("VALIDATION", pastorError);
+    const existing = await this.requireProfile(id);
+    const isPastor = data.isPastor && existing.roles.some((role) => role.role === "CHURCH_REP");
+    if (data.isPastor && !isPastor) {
+      throw new AppError("VALIDATION", "A pastor must be a church representative.");
+    }
+    await this.profiles.updateOwn(id, {
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
       phoneNumber: data.phoneNumber?.trim() || null,
     });
+    await this.profiles.setPastorMark(id, isPastor, isPastor ? data.ncmdcId : null);
     await this.audit.record(this.actor.id, "user.update", "profile", id, null);
-    return profile;
+    return (await this.profiles.findById(id))!;
   }
 
   async addRole(profileId: string, assignment: RoleAssignment): Promise<Profile> {
@@ -158,6 +180,10 @@ export class AdminService {
     if (error) throw new AppError("ROLE_RULE", error);
 
     await this.profiles.removeRole(profileId, roleId);
+    const stillRep = remaining.some((role) => role.role === "CHURCH_REP");
+    if (profile.isPastor && removing.role === "CHURCH_REP" && !stillRep) {
+      await this.profiles.setPastorMark(profileId, false, null);
+    }
     await this.audit.record(this.actor.id, "user.role.remove", "profile", profileId, {
       role: removing.role,
     });

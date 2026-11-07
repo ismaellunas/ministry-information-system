@@ -10,6 +10,13 @@ import {
 } from "@/domain/schemas";
 import { fail, ok, type ActionResult } from "../_lib/action-result";
 
+function formNumber(value: FormDataEntryValue | null): number | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  if (!/^\d+$/.test(raw)) return Number.NaN;
+  return Number(raw);
+}
+
 export async function createChurchAction(formData: FormData): Promise<ActionResult<{ id: string }>> {
   try {
     const actor = await requireProfile();
@@ -28,6 +35,12 @@ export async function updateDirectoryAction(formData: FormData): Promise<ActionR
     const actor = await requireProfile();
     const { churches } = await createServices(actor);
     const id = parseInput(churchIdSchema, String(formData.get("church_id") ?? ""));
+    const pastorBirthMonth = formNumber(formData.get("pastor_birth_month"));
+    const pastorBirthDay = formNumber(formData.get("pastor_birth_day"));
+    const pastorBirthYear = formNumber(formData.get("pastor_birth_year"));
+    if ([pastorBirthMonth, pastorBirthDay, pastorBirthYear].some((value) => Number.isNaN(value))) {
+      return { ok: false, error: "Enter the pastor's birthday as numbers." };
+    }
     const directory = parseInput(directoryFieldsSchema, {
       pastorFirstName: String(formData.get("pastor_first_name") ?? ""),
       pastorLastName: String(formData.get("pastor_last_name") ?? ""),
@@ -36,6 +49,9 @@ export async function updateDirectoryAction(formData: FormData): Promise<ActionR
       facebookPageUrl: String(formData.get("facebook_page_url") ?? ""),
       hotlineNumber: String(formData.get("hotline_number") ?? ""),
       mapPinUrl: String(formData.get("map_pin_url") ?? ""),
+      pastorBirthMonth,
+      pastorBirthDay,
+      pastorBirthYear,
     });
     await churches.updateDirectory(id, directory);
     revalidatePath(`/churches/${id}`);
