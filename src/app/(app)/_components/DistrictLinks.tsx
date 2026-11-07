@@ -1,4 +1,4 @@
-import { Banknote, CalendarCheck, Library } from "lucide-react";
+import { CalendarCheck, Library, Wallet } from "lucide-react";
 import { HomeActionCard } from "./HomeActionCard";
 
 const LINKS = [
@@ -11,7 +11,7 @@ const LINKS = [
   {
     title: "Finances",
     href: "https://ncmdcaog.org/finances.php",
-    icon: Banknote,
+    icon: Wallet,
     tint: "bg-emerald-50 text-emerald-500",
   },
   {

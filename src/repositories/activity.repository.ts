@@ -23,6 +23,8 @@ export type ActivityWriteAccess = "user" | "service";
 
 export interface ActivityRepository {
   findById(id: string): Promise<Activity | null>;
+  /** Service role. Includes a removed event so sync cannot write it back. */
+  findAny(id: string): Promise<Activity | null>;
   /** Service role. Includes church-only rows the caller cannot select. */
   findManyByIds(ids: string[]): Promise<Activity[]>;
   listVisible(range: { start: Date; end: Date }): Promise<Activity[]>;

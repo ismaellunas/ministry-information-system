@@ -2,9 +2,10 @@
  * Navigations are network-first. A page opened while online can open again offline.
  * API responses are never cached. This worker must not delete IndexedDB.
  */
-const CACHE = "west-mis-shell-v5";
+const CACHE = "west-mis-shell-v6";
 const OFFLINE_PAGE = "/offline.html";
-const SHELL_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="mobile-web-app-capable" content="yes"><title>West Section MIS</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f9fafb;color:#1e2939;font-family:Outfit,system-ui,sans-serif;padding:calc(2rem + env(safe-area-inset-top)) 1rem calc(2rem + env(safe-area-inset-bottom))}main{width:100%;max-width:24rem}h1{margin:0;font-size:18px;line-height:28px;font-weight:600;color:#101828}p{margin:1rem 0 0;font-size:14px;line-height:20px;color:#6a7282}a{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;margin-top:1rem;border-radius:10px;font-size:14px;font-weight:500;text-decoration:none}.primary{background:#465fff;color:#fff}.secondary{background:#fff;color:#344054;border:1px solid #d0d5dd}</style></head><body><main><h1>West MIS</h1><p>The calendar opens after this phone has loaded it once.</p><a class="primary" href="/calendar">Calendar</a><a class="secondary" href="/login">Sign in</a></main></body></html>`;
+const OPEN_CALENDAR_SCRIPT = `document.getElementById("open-calendar").addEventListener("click",function(){caches.keys().then(function(keys){return keys.reduce(function(found,key){return found.then(function(hit){if(hit)return hit;return caches.open(key).then(function(cache){return cache.match("/calendar",{ignoreSearch:true});});});},Promise.resolve(null));}).then(function(hit){var type=hit&&hit.headers.get("content-type")||"";if(hit&&hit.ok&&type.indexOf("text/html")!==-1){location.assign("/calendar");return;}document.getElementById("note").textContent="This phone does not have the calendar yet. Open West MIS once while you are online, then it will open here.";});});`;
+const SHELL_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="mobile-web-app-capable" content="yes"><title>West Section MIS</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f9fafb;color:#1e2939;font-family:Outfit,system-ui,sans-serif;padding:calc(2rem + env(safe-area-inset-top)) 1rem calc(2rem + env(safe-area-inset-bottom))}main{width:100%;max-width:24rem}h1{margin:0;font-size:18px;line-height:28px;font-weight:600;color:#101828}p{margin:1rem 0 0;font-size:14px;line-height:20px;color:#6a7282}button{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;min-height:44px;margin-top:1rem;border:0;border-radius:10px;background:#465fff;color:#fff;font:inherit;font-size:14px;font-weight:500}</style></head><body><main><h1>West MIS</h1><p id="note">Open the calendar saved on this phone.</p><button type="button" id="open-calendar">Open calendar</button></main><script>${OPEN_CALENDAR_SCRIPT}</script></body></html>`;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -15,12 +16,7 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil(keepCachedPages().then(() => self.clients.claim()));
 });
 
 self.addEventListener("fetch", (event) => {
@@ -58,6 +54,32 @@ self.addEventListener("sync", (event) => {
   );
 });
 
+async function keepCachedPages() {
+  const cache = await caches.open(CACHE);
+  const keys = await caches.keys();
+  for (const key of keys) {
+    if (key === CACHE) continue;
+    const old = await caches.open(key);
+    const requests = await old.keys();
+    await Promise.all(
+      requests.map(async (request) => {
+        const path = new URL(request.url).pathname;
+        const keep =
+          path === "/calendar" ||
+          path.startsWith("/calendar/") ||
+          path.startsWith("/churches") ||
+          path.startsWith("/_next/") ||
+          path.startsWith("/icons/") ||
+          path === "/favicon.jpeg";
+        if (!keep) return;
+        const response = await old.match(request);
+        if (response) await cache.put(request, response);
+      })
+    );
+    await caches.delete(key);
+  }
+}
+
 async function precacheShell() {
   const cache = await caches.open(CACHE);
   await cache.addAll([OFFLINE_PAGE, "/manifest.webmanifest", "/favicon.jpeg"]);
@@ -81,9 +103,11 @@ async function networkFirstPage(request) {
   const cache = await caches.open(CACHE);
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    if (response.ok && sameDocument(request, response)) {
       await cache.put(request, response.clone());
       await cacheAssetsIn(cache, request);
+      const path = new URL(request.url).pathname;
+      if (path !== "/calendar") void prefetchCalendar(cache);
     }
     return response;
   } catch {
@@ -127,6 +151,27 @@ async function clearPages() {
       return keep ? undefined : cache.delete(request);
     })
   );
+}
+
+function sameDocument(request, response) {
+  try {
+    return new URL(response.url).pathname === new URL(request.url).pathname;
+  } catch {
+    return false;
+  }
+}
+
+async function prefetchCalendar(cache) {
+  const existing = await cache.match("/calendar", { ignoreSearch: true });
+  if (usablePage(existing)) return;
+  try {
+    const response = await fetch(new Request("/calendar", { credentials: "same-origin" }));
+    if (!response.ok || new URL(response.url).pathname !== "/calendar") return;
+    await cache.put("/calendar", response.clone());
+    await cacheAssetsIn(cache, new Request("/calendar"));
+  } catch {
+    // The next online page view tries again.
+  }
 }
 
 function usablePage(response) {

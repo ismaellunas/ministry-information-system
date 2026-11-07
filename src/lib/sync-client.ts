@@ -332,7 +332,20 @@ async function refreshFromScratch(): Promise<void> {
 async function pushPending(): Promise<void> {
   const db = localDb();
   const pending = await db.outbox.where("status").equals("pending").sortBy("queuedAt");
-  const mutations = mutationsToPush(pending.filter((row) => row.id != null).map(toMutation));
+  const stillPending = [];
+  for (const row of pending) {
+    if (row.op !== "save" || row.id == null) {
+      stillPending.push(row);
+      continue;
+    }
+    const stored = await db.activities.get(row.entityId);
+    if (stored?.deleted) {
+      await db.outbox.delete(row.id);
+      continue;
+    }
+    stillPending.push(row);
+  }
+  const mutations = mutationsToPush(stillPending.filter((row) => row.id != null).map(toMutation));
   for (let index = 0; index < mutations.length; index += 20) {
     const batch = mutations.slice(index, index + 20);
     const response = await fetch("/api/sync/push", {
@@ -357,6 +370,10 @@ async function pushPending(): Promise<void> {
           const existing = await db.activities.get(row.entityId);
           if (existing) await db.activities.put({ ...existing, deleted: true });
         }
+        await db.outbox.delete(row.id);
+      } else if (result.error === "This event was removed.") {
+        const existing = await db.activities.get(row.entityId);
+        if (existing) await db.activities.put({ ...existing, deleted: true });
         await db.outbox.delete(row.id);
       } else if (result.status === "conflict") {
         await db.outbox.update(row.id, {
@@ -431,6 +448,14 @@ async function pullAll(): Promise<void> {
     };
     const pending = new Set(await pendingEntityIds());
     for (const activity of body.activities ?? []) {
+      if (activity.deleted) {
+        const queued = await db.outbox.where("entityId").equals(activity.id).toArray();
+        for (const row of queued) {
+          if (row.id != null && row.op === "save") await db.outbox.delete(row.id);
+        }
+        await db.activities.put(activity);
+        continue;
+      }
       if (pending.has(activity.id)) continue;
       await db.activities.put(activity);
     }

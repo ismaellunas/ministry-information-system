@@ -22,29 +22,52 @@
       main { width: 100%; max-width: 24rem; }
       h1 { margin: 0; font-size: 18px; line-height: 28px; font-weight: 600; color: #101828; }
       p { margin: 1rem 0 0; font-size: 14px; line-height: 20px; color: #6a7282; }
-      a {
+      button {
         display: flex;
         align-items: center;
         justify-content: center;
         box-sizing: border-box;
+        width: 100%;
         min-height: 44px;
         margin-top: 1rem;
+        border: 0;
         border-radius: 10px;
+        background: #465fff;
+        color: #fff;
+        font: inherit;
         font-size: 14px;
         font-weight: 500;
-        text-decoration: none;
       }
-      .primary { background: #465fff; color: #fff; }
-      .secondary { background: #fff; color: #344054; border: 1px solid #d0d5dd; }
     </style>
   </head>
   <body>
     <main>
       <img src="/favicon.jpeg" alt="West MIS Logo" width="48" height="48" style="border-radius:10px;object-fit:cover;margin-bottom:12px;" />
       <h1>West MIS</h1>
-      <p>The calendar opens after this phone has loaded it once.</p>
-      <a class="primary" href="/calendar">Calendar</a>
-      <a class="secondary" href="/login">Sign in</a>
+      <p id="note">Open the calendar saved on this phone.</p>
+      <button type="button" id="open-calendar">Open calendar</button>
     </main>
+    <script>
+      document.getElementById("open-calendar").addEventListener("click", function () {
+        caches.keys().then(function (keys) {
+          return keys.reduce(function (found, key) {
+            return found.then(function (hit) {
+              if (hit) return hit;
+              return caches.open(key).then(function (cache) {
+                return cache.match("/calendar", { ignoreSearch: true });
+              });
+            });
+          }, Promise.resolve(null));
+        }).then(function (hit) {
+          var type = (hit && hit.headers.get("content-type")) || "";
+          if (hit && hit.ok && type.indexOf("text/html") !== -1) {
+            location.assign("/calendar");
+            return;
+          }
+          document.getElementById("note").textContent =
+            "This phone does not have the calendar yet. Open West MIS once while you are online, then it will open here.";
+        });
+      });
+    </script>
   </body>
 </html>

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { OpenCalendarButton } from "./open-calendar-button";
 
 export const metadata = { title: "West Section MIS" };
 
@@ -15,19 +16,7 @@ export default function OfflinePage() {
         />
         <h1 className="page-title">West MIS</h1>
       </div>
-      <p className="page-copy">The calendar opens after this phone has loaded it once.</p>
-      <a
-        href="/calendar"
-        className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white"
-      >
-        Calendar
-      </a>
-      <a
-        href="/login"
-        className="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700"
-      >
-        Sign in
-      </a>
+      <OpenCalendarButton />
     </main>
   );
 }

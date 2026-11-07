@@ -93,7 +93,7 @@ describe("SyncService.push", () => {
     });
     const service = new SyncService(
       rep,
-      { findById: vi.fn(async () => server) } as unknown as ActivityRepository,
+      { findById: vi.fn(async () => server), findAny: vi.fn(async () => server) } as unknown as ActivityRepository,
       { save, remove: vi.fn() },
       () => now
     );
@@ -108,7 +108,7 @@ describe("SyncService.push", () => {
       if (input.id === "denied") throw new AppError("FORBIDDEN", "You cannot edit this event.");
       return activity({ id: input.id ?? "new", title: "Kept" });
     });
-    const service = new SyncService(rep, { findById: vi.fn() } as unknown as ActivityRepository, { save, remove: vi.fn() }, () => now);
+    const service = new SyncService(rep, { findById: vi.fn(), findAny: vi.fn(async () => null) } as unknown as ActivityRepository, { save, remove: vi.fn() }, () => now);
     const results = await service.push([
       mutation({ entityId: "denied", clientId: 1 }),
       mutation({ entityId: "denied", clientId: 2, payload: { title: "Later", isAllDay: false, startAt: "2026-10-30T09:00", endAt: "2026-10-30T10:00", scope: "LOCAL", actingRole: "CHURCH_REP" } }),
@@ -118,5 +118,20 @@ describe("SyncService.push", () => {
     expect(results.find((row) => row.clientId === 2)?.status).toBe("failed");
     expect(results.find((row) => row.clientId === 3)?.status).toBe("ok");
     expect(save).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not write a removed event back online", async () => {
+    const save = vi.fn();
+    const removed = activity({ id: "gone", deleted: true });
+    const service = new SyncService(
+      rep,
+      { findAny: vi.fn(async () => removed) } as unknown as ActivityRepository,
+      { save, remove: vi.fn() },
+      () => now
+    );
+    const [result] = await service.push([mutation({ entityId: "gone", baseVersion: 2 })]);
+    expect(result.status).toBe("failed");
+    expect(result.error).toBe("This event was removed.");
+    expect(save).not.toHaveBeenCalled();
   });
 });

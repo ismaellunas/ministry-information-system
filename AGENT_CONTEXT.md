@@ -390,6 +390,24 @@ supabase/
 
 ---
 
+### 2026-11-07 — Cursor (Offline calendar opens, removed events stay removed)
+
+**What:** The offline screen no longer offers Sign in. Open calendar opens the calendar saved on the phone, or says the calendar is not on the phone yet. A removed event is not written back when the phone syncs.
+
+**Why:** Closing the browser and opening it offline showed Sign in and a Calendar link that reloaded the same screen. Events that had already been removed were uploaded again from the phone.
+
+**Files changed:**
+- `public/sw.js` — keeps the cached calendar across an update, saves it while the app is online, and the shell opens that copy
+- `public/offline.html` and `src/app/offline/page.tsx` — Open calendar, no Sign in
+- `src/services/sync.service.ts` — refuses to save an event that was removed
+- `src/lib/sync-client.ts` — drops a queued save for a removed event
+
+**Decisions made:** Sign in stays off this screen because it needs a connection. An event created on the phone that the server has never stored can still upload. A removed event cannot.
+
+**Agent notes:** The phone learns the new screen after the updated service worker installs, which happens on the next online visit. New Lucide icons must be added to `src/types/lucide-react.d.ts`. That local module is what TypeScript checks, so an icon can exist in the package and still fail the build.
+
+---
+
 <!-- TEMPLATE — copy and fill for every new session:
 
 ### YYYY-MM-DD — <Agent name / tool>

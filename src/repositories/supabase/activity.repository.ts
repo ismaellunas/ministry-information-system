@@ -18,6 +18,12 @@ export class SupabaseActivityRepository implements ActivityRepository {
     return data ? toActivity(data) : null;
   }
 
+  async findAny(id: string) {
+    const { data, error } = await this.admin.from("activities").select("*").eq("id", id).maybeSingle();
+    if (error) throw new AppError("DB", error.message);
+    return data ? toActivity(data) : null;
+  }
+
   async findManyByIds(ids: string[]) {
     if (ids.length === 0) return [];
     const { data, error } = await this.admin.from("activities").select("*").in("id", ids);

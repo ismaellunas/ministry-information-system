@@ -92,6 +92,10 @@ export class SyncService {
         const activity = await this.activities.findById(mutation.entityId);
         return { ...base, status: "ok", error: null, activity };
       }
+      const prior = await this.activities.findAny(mutation.entityId);
+      if (prior?.deleted) {
+        return { ...base, status: "failed", error: "This event was removed." };
+      }
       const saved = await this.events.save({
         ...mutation.payload,
         id: mutation.entityId,
