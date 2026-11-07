@@ -8,6 +8,7 @@ import { cachedFetch } from "@/lib/page-cache";
 import { churchRepChurchIds } from "@/domain/activity-access";
 import type { PresbyteryHat, UserRole } from "@/domain/types";
 import { ChurchHeroCard } from "./_components/ChurchHeroCard";
+import { DistrictLinks } from "./_components/DistrictLinks";
 import { DepartmentCountsSection } from "./_components/DepartmentCountsSection";
 import { HatSwitch } from "./_components/HatSwitch";
 import { MissingDepartments } from "./_components/MissingDepartments";
@@ -44,8 +45,8 @@ export default async function HomePage() {
       {isPresbytery && <HatSwitch value={hat} />}
       {churchIds.length > 0 && (!isPresbytery || hat === "church") ? (
         <div className="space-y-6">
-          {churchIds.map((id) => (
-            <ChurchDashboard key={id} churchId={id} hat={hat} />
+          {churchIds.map((id, index) => (
+            <ChurchDashboard key={id} churchId={id} hat={hat} showDistrictLinks={index === 0} />
           ))}
         </div>
       ) : (
@@ -57,7 +58,15 @@ export default async function HomePage() {
   );
 }
 
-async function ChurchDashboard({ churchId, hat }: { churchId: string; hat: PresbyteryHat }) {
+async function ChurchDashboard({
+  churchId,
+  hat,
+  showDistrictLinks,
+}: {
+  churchId: string;
+  hat: PresbyteryHat;
+  showDistrictLinks: boolean;
+}) {
   const actor = await requireProfile();
   const { churches } = await createServices(actor);
   const church = await cachedFetch(
@@ -81,6 +90,7 @@ async function ChurchDashboard({ churchId, hat }: { churchId: string; hat: Presb
           <UpcomingEventsCard hat={hat} />
         </div>
       </section>
+      {showDistrictLinks && <DistrictLinks />}
       <DepartmentCountsSection churchId={churchId} />
     </div>
   );
@@ -110,6 +120,7 @@ async function SectionDashboard({ hat }: { hat: PresbyteryHat }) {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">This month</h2>
         <UpcomingEventsCard hat={hat} />
       </section>
+      <DistrictLinks />
       <SectionCountsSection />
     </div>
   );

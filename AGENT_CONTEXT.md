@@ -371,6 +371,25 @@ supabase/
 
 ---
 
+### 2026-11-07 — Cursor (Helpful District Links on the dashboard)
+
+**What:** Home shows Helpful District Links between This month and Membership counts. The links open Event Attendance, Finances, and District Resources on ncmdcaog.org in a new tab.
+
+**Why:** Church and section users need those district pages from the dashboard.
+
+**Approved deviation (2026-11-07):** Blueprint §10 does not list district links on the home dashboard. The three URLs are fixed in the app. A file over 200 KB is still rejected; logo resizing stays with the person uploading it.
+
+**Files changed:**
+- `src/app/(app)/_components/DistrictLinks.tsx` — the three links
+- `src/app/(app)/page.tsx` — placement on the church dashboard and the section dashboard
+- `src/app/(app)/_components/HomeActionCard.tsx` — external links open in a new tab
+
+**Decisions made:** The same block appears on a church dashboard and on a section or admin dashboard. A person who represents more than one church sees the links once, under the first church.
+
+**Agent notes:** None
+
+---
+
 <!-- TEMPLATE — copy and fill for every new session:
 
 ### YYYY-MM-DD — <Agent name / tool>
