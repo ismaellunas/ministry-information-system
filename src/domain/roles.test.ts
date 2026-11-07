@@ -32,8 +32,8 @@ describe("validateRoleSet", () => {
   });
 
   it("requires presbytery to also be a church rep", () => {
-    expect(set([{ role: "SECTION_PRESBYTERY", churchId: null, ministryId: null }])).toMatch(
-      /home church/
+    expect(set([{ role: "SECTION_PRESBYTERY", churchId: null, ministryId: null }])).toBe(
+      "The Presbytery must also represent a home church."
     );
   });
 

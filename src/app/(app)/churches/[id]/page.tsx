@@ -31,7 +31,7 @@ export default async function ChurchDetailPage({ params }: { params: { id: strin
       <RememberChurch church={church} />
       <div>
         <h1 className="page-title">{church.name}</h1>
-        {!church.isActive && <p className="page-copy mt-1">Closed — listed for the record.</p>}
+        {!church.isActive && <p className="mt-1 text-sm font-bold text-destructive">CLOSED</p>}
       </div>
 
       {church.logoUrl && (
@@ -42,7 +42,11 @@ export default async function ChurchDetailPage({ params }: { params: { id: strin
       {canEdit ? (
         <DirectoryForm church={church} canClose={isAdmin} />
       ) : (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs space-y-2">
+        <div
+          className={`space-y-2 rounded-2xl bg-white p-4 shadow-theme-xs ${
+            church.isActive ? "border border-gray-200" : "border-2 border-destructive"
+          }`}
+        >
           <Row label="Pastor" value={church.pastorName} />
           <Row label="Pastor phone" value={church.pastorPhone} />
           <Row label="Hotline" value={church.hotlineNumber} />

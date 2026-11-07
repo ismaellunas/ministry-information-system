@@ -118,6 +118,7 @@ supabase/
 | `domain/sync.ts` | Outbox and pull-since logic |
 | `domain/audit.ts` | Audit entry shape validation |
 | `domain/roles.ts` | Role combination rules |
+| `domain/user-form.ts` | Create-user form fields → role assignments |
 | `domain/schemas.ts` | Shared Zod schemas |
 | `domain/errors.ts` | Typed error classes |
 
@@ -206,6 +207,45 @@ supabase/
 - Cached items are scoped strictly by `actor.id` to guarantee RLS boundaries are respected.
 - Calendar items and church directories serialize only plain JSON structures so `unstable_cache` deserialization remains type-safe without Date hydration issues.
 - Fast background revalidation (15-60s) ensures data never stays stale for long while delivering instant sub-10ms first paint on revisit.
+
+---
+
+### 2026-11-07 — Cursor (Presbytery home church on create user)
+
+**What:** Creating a Presbytery user now keeps the church chosen in the dropdown as that person's home church.
+
+**Why:** Checking Presbytery locks the church-representative checkbox on and disables it. Disabled controls are omitted from form data, so the server stored only the Presbytery role and then rejected the user for having no home church. The church id was submitted and ignored.
+
+**Files changed:**
+- `src/domain/user-form.ts` — create-user role parsing; a Presbytery submission with a church id also assigns church rep
+- `src/domain/user-form.test.ts` — covers the omitted checkbox and the still-required home church
+- `src/app/(app)/admin/actions.ts` — create user uses that parser
+- `src/app/(app)/admin/_components/CreateUserForm.tsx` — submits the locked church-rep role with a hidden field
+- `src/domain/roles.test.ts` — asserts the exact home-church message
+
+**Decisions made:** The home-church rule stays in `validateRoleSet`. The form parser supplies the missing church-rep assignment; Presbytery itself remains untied to a church id, matching `roleShapeError`.
+
+**Agent notes:** The reported spelling "Presbetery" is not in the repo. The message is already "The Presbytery must also represent a home church." The signed-in create-user screen was not opened: no dev server was running, and this session had no admin credentials.
+
+---
+
+### 2026-11-07 — Cursor (Directory represented churches and closed styling)
+
+**What:** The Directory pins every church the signed-in user represents above the search field. Search filters only the other churches. A closed church has a red border and the word CLOSED in bold red.
+
+**Why:** The user asked for represented churches to stay on top of the Directory, with search under them, and for closed churches to be marked in red wherever they appear in that list.
+
+**Approved deviation (2026-11-07):** Blueprint §10.4 lists every church on one directory and says closed churches remain listed. It does not pin a person's churches above search. This entry records the user's layout: churches from `CHURCH_REP` roles stay above search and are omitted from the searchable list. Closed churches stay listed. They use a 2px `border-destructive` (`#fb2c36`) and the word CLOSED in `text-sm font-bold text-destructive`.
+
+**Files changed:**
+- `src/domain/directory.ts` — `splitDirectoryChurches` keeps represented churches out of the other list and preserves the open-then-name sort in both sections
+- `src/domain/directory.test.ts` — covers one church, several churches, and a user who represents none
+- `src/app/(app)/churches/_components/ChurchList.tsx` — pinned section, existing `SearchableList` for the rest, closed card styling
+- `src/app/(app)/churches/[id]/page.tsx` — CLOSED on the church page opened from the directory
+
+**Decisions made:** "Represents a church" is every `CHURCH_REP` role with a church id (`churchRepChurchIds`). A Presbytery's home church is included because that role also requires church rep. An Admin represents none, so the whole directory stays under search. Search still matches name, pastor, phone, hotline, address, and active/closed.
+
+**Agent notes:** Browser check used the local seed admin, who represents no church, so the pinned section was not on screen. Search, the closed church AG Baikingon, phone width, and the `md` sidebar were checked. A church-rep sign-in was not available.
 
 ---
 

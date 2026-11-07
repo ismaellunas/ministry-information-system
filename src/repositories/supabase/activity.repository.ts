@@ -57,11 +57,12 @@ export class SupabaseActivityRepository implements ActivityRepository {
     return toActivity(data);
   }
 
-  async softDelete(id: string, expectedVersion: number, access: ActivityWriteAccess = "user") {
-    const client = access === "service" ? await this.serviceClientForDelete(id) : this.db;
-    // A removed event is hidden by the read policy. Selecting it back makes Postgres
-    // reject the update as a row-level security failure, so the delete never lands.
-    const { error, count } = await client
+  async softDelete(id: string, expectedVersion: number, _access: ActivityWriteAccess = "user") {
+    // Always use the admin client for soft-deletes: setting deleted_at to non-null
+    // causes the row to violate the SELECT RLS policy (which requires deleted_at IS NULL),
+    // and Postgres rejects the UPDATE. Authorization is already enforced in the service layer
+    // via canManageActivity() before this method is called.
+    const { error, count } = await this.admin
       .from("activities")
       .update({ deleted_at: new Date().toISOString() }, { count: "exact" })
       .eq("id", id)
@@ -76,14 +77,6 @@ export class SupabaseActivityRepository implements ActivityRepository {
     throw new AppError("FORBIDDEN", "Only a public local event can be saved for a church Admin does not belong to.");
   }
 
-  private async serviceClientForDelete(id: string) {
-    const { data, error } = await this.admin.from("activities").select("scope, visibility").eq("id", id).maybeSingle();
-    if (error) throw new AppError("DB", error.message);
-    if (!data || data.scope !== "LOCAL" || data.visibility !== "PUBLIC") {
-      throw new AppError("FORBIDDEN", "Only a public local event can be removed for a church Admin does not belong to.");
-    }
-    return this.admin;
-  }
 
   async listForPull(query: { updatedSince: string | null; start: Date | null; end: Date | null }) {
     const base = this.db.from("activities").select("*");

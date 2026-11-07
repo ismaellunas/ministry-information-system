@@ -31,6 +31,24 @@ export function sortDirectoryChurches<T extends { name: string; isActive: boolea
   });
 }
 
+/**
+ * Churches the signed-in user represents stay in their own section.
+ * Both sections keep the directory sort. A church is never in both.
+ */
+export function splitDirectoryChurches<T extends { id: string; name: string; isActive: boolean }>(
+  churches: T[],
+  representedIds: readonly string[]
+): { represented: T[]; others: T[] } {
+  const representedIdsSet = new Set(representedIds);
+  const represented: T[] = [];
+  const others: T[] = [];
+  for (const church of sortDirectoryChurches(churches)) {
+    if (representedIdsSet.has(church.id)) represented.push(church);
+    else others.push(church);
+  }
+  return { represented, others };
+}
+
 export function toProperCase(value: string): string {
   return value
     .trim()

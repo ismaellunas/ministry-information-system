@@ -148,13 +148,7 @@ export class ActivityService {
     if (!canManageActivity(this.actor, existing)) {
       throw new AppError("FORBIDDEN", "You cannot remove this event.");
     }
-    const access: ActivityWriteAccess =
-      this.actor.roles.some((role) => role.role === "ADMIN") &&
-      existing.scope === "LOCAL" &&
-      existing.visibility === "PUBLIC"
-        ? "service"
-        : "user";
-    await this.activities.softDelete(id, expectedVersion, access);
+    await this.activities.softDelete(id, expectedVersion);
     await this.afterWrite(
       { ...existing, deleted: true, version: existing.version + 1, updatedAt: new Date() },
       "activity.remove"

@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin, createServices } from "@/composition/server";
-import type { RoleAssignment } from "@/domain/types";
 import {
   createUserFieldsSchema,
   parseInput,
@@ -12,31 +11,8 @@ import {
   updateUserFieldsSchema,
   userIdSchema,
 } from "@/domain/schemas";
+import { rolesFromUserForm } from "@/domain/user-form";
 import { fail, ok, type ActionResult } from "../_lib/action-result";
-
-function parseRoles(formData: FormData): RoleAssignment[] {
-  const roles: RoleAssignment[] = [];
-  if (formData.get("role_admin") === "on") {
-    roles.push({ role: "ADMIN", churchId: null, ministryId: null });
-    return roles;
-  }
-  const churchId = String(formData.get("church_id") ?? "") || null;
-  if (formData.get("role_church") === "on") {
-    roles.push({ role: "CHURCH_REP", churchId, ministryId: null });
-  }
-  if (formData.get("role_presbytery") === "on") {
-    roles.push({ role: "SECTION_PRESBYTERY", churchId: null, ministryId: null });
-  }
-  if (formData.get("role_ministry") === "on") {
-    const ministryId = Number(formData.get("ministry_id"));
-    roles.push({
-      role: "SECTION_MINISTRY_REP",
-      churchId: null,
-      ministryId: Number.isFinite(ministryId) ? ministryId : null,
-    });
-  }
-  return roles;
-}
 
 export async function createUserAction(
   formData: FormData
@@ -52,7 +28,10 @@ export async function createUserAction(
     });
     const created = await admin.createUser({
       ...fields,
-      roles: parseInput(z.array(roleAssignmentSchema).min(1, "Assign at least one role."), parseRoles(formData)),
+      roles: parseInput(
+        z.array(roleAssignmentSchema).min(1, "Assign at least one role."),
+        rolesFromUserForm(formData)
+      ),
     });
     revalidatePath("/admin/users");
     revalidatePath("/");

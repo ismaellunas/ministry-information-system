@@ -90,12 +90,13 @@ export function CreateUserForm({
         <label className="flex min-h-11 items-center gap-3 text-sm text-gray-700">
           <input
             type="checkbox"
-            name="role_church"
+            name={presbytery ? undefined : "role_church"}
             className="h-5 w-5 rounded border-gray-300"
             checked={churchRep}
             disabled={admin || presbytery}
             onChange={(event) => setChurchRep(event.target.checked)}
           />
+          {presbytery && !admin && <input type="hidden" name="role_church" value="on" />}
           Church representative
         </label>
         {(churchRep || presbytery) && !admin && (

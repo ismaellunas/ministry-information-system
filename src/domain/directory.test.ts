@@ -10,6 +10,7 @@ import {
   parsePastorNames,
   parsePhone,
   sortDirectoryChurches,
+  splitDirectoryChurches,
   toProperCase,
 } from "./directory";
 
@@ -22,6 +23,38 @@ describe("sortDirectoryChurches", () => {
       { name: "Gamma Church", isActive: true },
     ]);
     expect(sorted.map((church) => church.name)).toEqual([
+      "beta church",
+      "Gamma Church",
+      "Alpha Assembly",
+      "Zion Chapel",
+    ]);
+  });
+});
+
+describe("splitDirectoryChurches", () => {
+  const churches = [
+    { id: "zion", name: "Zion Chapel", isActive: false },
+    { id: "beta", name: "beta church", isActive: true },
+    { id: "alpha", name: "Alpha Assembly", isActive: false },
+    { id: "gamma", name: "Gamma Church", isActive: true },
+  ];
+
+  it("pins every represented church and leaves the rest for search", () => {
+    const { represented, others } = splitDirectoryChurches(churches, ["alpha", "beta"]);
+    expect(represented.map((church) => church.id)).toEqual(["beta", "alpha"]);
+    expect(others.map((church) => church.id)).toEqual(["gamma", "zion"]);
+  });
+
+  it("keeps a church out of the searchable list when the user represents it", () => {
+    const { represented, others } = splitDirectoryChurches(churches, ["gamma", "gamma"]);
+    expect(represented.map((church) => church.id)).toEqual(["gamma"]);
+    expect(others.map((church) => church.id)).not.toContain("gamma");
+  });
+
+  it("puts the whole directory in the searchable section when the user represents none", () => {
+    const { represented, others } = splitDirectoryChurches(churches, []);
+    expect(represented).toEqual([]);
+    expect(others.map((church) => church.name)).toEqual([
       "beta church",
       "Gamma Church",
       "Alpha Assembly",
