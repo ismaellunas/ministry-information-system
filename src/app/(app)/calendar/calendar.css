@@ -34,3 +34,7 @@
 .west-calendar .rbc-today {
   background: #ecf3ff;
 }
+.west-calendar .rbc-month-view .rbc-date-cell > a,
+.west-calendar .rbc-month-view .rbc-day-bg {
+  cursor: pointer;
+}

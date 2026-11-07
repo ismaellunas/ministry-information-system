@@ -408,6 +408,41 @@ supabase/
 
 ---
 
+### 2026-11-07 — Cursor (Month day opens a new event)
+
+**What:** Clicking a day in month view opens Add event with that day already filled in (9:00–10:00). It no longer switches to the day view.
+
+**Why:** The day number was a shortcut into the day view. The calendar should start an event for the day that was tapped.
+
+**Files changed:**
+- `src/app/(app)/calendar/_components/PhoneMonth.tsx` — day buttons start an event
+- `src/app/(app)/calendar/_components/CalendarBoard.tsx` — phone and desktop month clicks share that action
+- `src/app/(app)/calendar/calendar.css` — month days show a pointer
+
+**Decisions made:** Week and day views still open a day from a heading click. An existing event in the month still opens that event. A login that cannot add events does nothing on a day tap. The plus button is unchanged.
+
+**Agent notes:** None
+
+---
+
+### 2026-11-07 — Cursor (Church card logo and Minister label)
+
+**What:** The church dashboard card shows that church's logo in the top corner. A church representative with an NCMDC number is labeled Minister.
+
+**Why:** The corner showed a building icon, and the name line still said Church representative after the NCMDC number was stored.
+
+**Files changed:**
+- `src/app/(app)/_components/ChurchHeroCard.tsx` — logo in the corner; Minister label
+- `src/app/(app)/_components/SectionHeroCard.tsx` — same label rule
+- `src/domain/roles.ts` — church rep with an NCMDC number is Minister; Pastor stays Pastor
+- `src/domain/roles.test.ts` — covers the three labels
+
+**Decisions made:** A church with no logo keeps the building icon. Presbytery and Admin labels are unchanged. Pastor still wins over Minister when that mark is set.
+
+**Agent notes:** None
+
+---
+
 <!-- TEMPLATE — copy and fill for every new session:
 
 ### YYYY-MM-DD — <Agent name / tool>

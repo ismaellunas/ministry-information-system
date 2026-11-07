@@ -136,9 +136,9 @@ export function CalendarBoard({
     resource: item,
   }));
 
-  function openDay(day: Date) {
-    setView("day");
-    navigate(format(day, "yyyy-MM-dd"));
+  function addOnDay(day: Date) {
+    if (!canAdd || !addEvent) return;
+    setDraft(blankEvent(addEvent, format(day, "yyyy-MM-dd")));
   }
 
   if (draft && addEvent) {
@@ -265,7 +265,7 @@ export function CalendarBoard({
       {view === "month" && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 md:hidden">
           <MonthName cursor={cursor} />
-          <PhoneMonth cursor={cursor} events={shown} onOpenDay={openDay} />
+          <PhoneMonth cursor={cursor} events={shown} onAddDay={addOnDay} />
           <CalendarNav
             canAdd={canAdd}
             onAdd={() => addEvent && setDraft(blankEvent(addEvent))}
@@ -288,8 +288,21 @@ export function CalendarBoard({
               views={["month", "week", "day"]}
               toolbar={false}
               showAllEvents
+              selectable={view === "month"}
               onNavigate={(next) => {
                 navigate(format(next, "yyyy-MM-dd"));
+              }}
+              onDrillDown={(date) => {
+                if (view === "month") {
+                  addOnDay(date);
+                  return;
+                }
+                setView("day");
+                navigate(format(date, "yyyy-MM-dd"));
+              }}
+              onSelectSlot={(slot) => {
+                if (view !== "month" || slot.action === "doubleClick") return;
+                addOnDay(slot.start);
               }}
               onSelectEvent={(event) => router.push(`/calendar/${event.resource.id}`)}
               eventPropGetter={(event) => ({ className: tone(event.resource) })}
@@ -308,8 +321,7 @@ export function CalendarBoard({
   );
 }
 
-function blankEvent(seed: AddEventContext): EventFormValues {
-  const today = todayManila();
+function blankEvent(seed: AddEventContext, day = todayManila()): EventFormValues {
   const role = seed.roles[0];
   return {
     id: crypto.randomUUID(),
@@ -317,8 +329,8 @@ function blankEvent(seed: AddEventContext): EventFormValues {
     description: "",
     location: "",
     isAllDay: false,
-    startAt: `${today}T09:00`,
-    endAt: `${today}T10:00`,
+    startAt: `${day}T09:00`,
+    endAt: `${day}T10:00`,
     scope: role === "SECTION_MINISTRY_REP" ? "SECTIONAL" : "LOCAL",
     visibility: "PUBLIC",
     churchId: seed.homeChurchId ?? "",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateRoleSet } from "./roles";
+import { signedInRoleLabel, validateRoleSet } from "./roles";
 import type { Ministry, RoleAssignment } from "./types";
 
 const ministries: Pick<Ministry, "id" | "allowsChurchlessRep" | "name">[] = [
@@ -83,5 +83,19 @@ describe("validateRoleSet", () => {
         { role: "CHURCH_REP", churchId: "c1", ministryId: null },
       ])
     ).toMatch(/same church twice/);
+  });
+});
+
+describe("signedInRoleLabel", () => {
+  it("calls a church representative with an NCMDC number a Minister", () => {
+    expect(signedInRoleLabel("CHURCH_REP", false, "224")).toBe("Minister");
+  });
+
+  it("keeps Church representative when there is no NCMDC number", () => {
+    expect(signedInRoleLabel("CHURCH_REP", false, null)).toBe("Church representative");
+  });
+
+  it("keeps Pastor when that mark is set", () => {
+    expect(signedInRoleLabel("CHURCH_REP", true, "224")).toBe("Pastor");
   });
 });

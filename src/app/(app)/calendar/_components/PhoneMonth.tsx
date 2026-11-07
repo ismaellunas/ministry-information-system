@@ -10,11 +10,11 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export function PhoneMonth({
   cursor,
   events,
-  onOpenDay,
+  onAddDay,
 }: {
   cursor: Date;
   events: CalendarItem[];
-  onOpenDay: (day: Date) => void;
+  onAddDay: (day: Date) => void;
 }) {
   const today = todayManila();
   const weeks = monthWeeks(cursor);
@@ -41,7 +41,8 @@ export function PhoneMonth({
                     <button
                       key={key}
                       type="button"
-                      onClick={() => onOpenDay(day)}
+                      aria-label={`Add an event on ${format(day, "MMMM d, yyyy")}`}
+                      onClick={() => onAddDay(day)}
                       className={`flex h-full min-h-11 items-center justify-center rounded-lg text-sm font-medium ${
                         isToday
                           ? "bg-brand-50 text-brand-500"

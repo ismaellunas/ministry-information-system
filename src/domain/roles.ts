@@ -73,8 +73,9 @@ export function validateRoleSet(
   return null;
 }
 
-export function signedInRoleLabel(role: UserRole, isPastor: boolean): string {
-  if (isPastor && role === "CHURCH_REP") return "Pastor";
+export function signedInRoleLabel(role: UserRole, isPastor: boolean, ncmdcId?: string | null): string {
+  if (role === "CHURCH_REP" && isPastor) return "Pastor";
+  if (role === "CHURCH_REP" && ncmdcId) return "Minister";
   return roleLabel(role);
 }
 

@@ -25,7 +25,7 @@ export function SectionHeroCard({
         </p>
         <p className="flex items-center gap-2">
           <User className="h-4 w-4 shrink-0" />
-          {actor.firstName} {actor.lastName} · {signedInRoleLabel(role, actor.isPastor)}
+          {actor.firstName} {actor.lastName} · {signedInRoleLabel(role, actor.isPastor, actor.ncmdcId)}
         </p>
         {actor.ncmdcId && (
           <p className="flex items-center gap-2">

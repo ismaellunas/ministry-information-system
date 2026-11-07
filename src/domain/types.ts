@@ -71,7 +71,7 @@ export interface Profile {
   mustChangePassword: boolean;
   /** Church representative who is the pastor. Distinct from other church reps. */
   isPastor: boolean;
-  /** District MIS identifier. Set only when isPastor is true. */
+  /** District MIS identifier. A church representative with this number is shown as Minister. */
   ncmdcId: string | null;
   roles: ProfileRole[];
 }
