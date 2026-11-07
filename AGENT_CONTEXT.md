@@ -82,6 +82,7 @@ supabase/
 | `20250101000017_rename_evangelism_to_missions.sql` | Display name of `EVANGELISM` is Missions |
 | `20250101000018_pastor_birthday.sql` | Pastor birthday record, readable by Admin and that church's reps |
 | `20250101000019_pastor_ncmdc.sql` | Pastor mark and optional NCMDC ID on the profile |
+| `20250101000020_ncmdc_for_church_reps.sql` | NCMDC ID allowed on any church representative |
 | `20250101000005_profiles.sql` | `profiles` table |
 | `20250101000006_profile_roles.sql` | `profile_roles` table + unique indexes |
 | `20250101000007_remaining_tables.sql` | `members`, `church_department_counts`, `activities`, `activity_conflicts`, `notifications`, `push_subscriptions`, `audit_log` |
@@ -325,7 +326,48 @@ supabase/
 
 **Decisions made:** The church's pastor name stays a directory field. It is not used to guess which login is the pastor.
 
-**Agent notes:** The hosted database still needs this migration. Until then, saving the mark fails and existing profiles are treated as not pastors.
+**Agent notes:** The hosted database still needs this migration. Until then, saving the mark fails and existing profiles are treated as not pastors. Migration `20250101000020` later allows the NCMDC ID on a church representative who is not marked pastor.
+
+---
+
+### 2026-11-07 — Cursor (Master list import scripts)
+
+**What:** Two confirm-gated scripts load `docs/west_section_masterlist.xls`. Churches are inserted first and their ids are written to `docs/church-id-map.json`. Users are created from that map. NCMDC 1253 is also the section Presbytery. People with no church are printed and skipped.
+
+**Why:** Production day resets test data, then loads the district list. A church representative needs the church id, so churches must exist before users.
+
+**Approved deviation (2026-11-07):** The NCMDC ID is stored for every imported church representative, not only people marked Pastor. Migration `20250101000020` drops `profiles_ncmdc_pastor_chk`. The dashboard shows the ID whenever it is set. The Pastor label still requires `is_pastor`. Imported people are not marked Pastor. Their password is the birthday as YYYYMMDD, or the literal `password` when the birthday cannot be used. The first sign-in lets them keep that password or set a new one.
+
+**Files changed:**
+- `scripts/masterlist.mjs` — reads the sheet, builds emails, and groups churches
+- `scripts/import-churches.mjs` — inserts churches and writes the id map
+- `scripts/import-users.mjs` — creates the logins from the map
+- `scripts/script-client.mjs` — shared service-role client and `--confirm`
+- `supabase/migrations/20250101000020_ncmdc_for_church_reps.sql` — drops the pastor-only NCMDC check
+- `src/domain/user-form.ts` — keeps an NCMDC ID on a church representative who is not the pastor
+
+**Decisions made:** Church pastor name, phone, Facebook, hotline, and map pin stay blank. Credential columns are not imported. An existing church name or email is left in place so a script can be run again. The scripts were not executed.
+
+**Agent notes:** Run order, after the migrations are on the hosted database: `npm run db:reset-data -- --confirm`, then `npm run import:churches -- --confirm`, then `npm run import:users -- --confirm`. `supabase db push` still needs the database password. Migrations 017 through 020 are not all applied.
+
+---
+
+### 2026-11-07 — Cursor (First login can keep or change the password)
+
+**What:** The password gate offers Change password and Keep this password. Either choice clears `must_change_password`. Imported master-list accounts start with that flag on.
+
+**Why:** A first login should be able to waive the given password or replace it. Birthday passwords and the fallback `password` can stay if the person wants them.
+
+**Approved deviation (2026-11-07):** Blueprint §8.5 says a new user must set a new password before continuing. The first sign-in, and a later admin reset that sets the same flag, now accepts an explicit choice to keep the password they were given.
+
+**Files changed:**
+- `src/app/(auth)/change-password/page.tsx` — copy for the choice
+- `src/app/(auth)/change-password/_components/ChangePasswordForm.tsx` — Change password and Keep this password
+- `scripts/import-users.mjs` — imported profiles start with `must_change_password` true
+
+**Decisions made:** Keep this password does not write a new auth password. It only clears the flag for the signed-in user. The production admin from the reset script still signs in with no gate.
+
+**Agent notes:** The signed-in screen shows Change password and Keep this password. Keep this password clears the flag and does not replace the auth password. The production admin flag was turned back off after that check.
 
 ---
 

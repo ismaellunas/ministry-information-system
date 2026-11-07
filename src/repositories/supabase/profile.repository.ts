@@ -67,7 +67,7 @@ export class SupabaseProfileRepository implements ProfileRepository {
   async setPastorMark(id: string, isPastor: boolean, ncmdcId: string | null): Promise<void> {
     const { error } = await this.db
       .from("profiles")
-      .update({ is_pastor: isPastor, ncmdc_id: isPastor ? ncmdcId : null })
+      .update({ is_pastor: isPastor, ncmdc_id: ncmdcId })
       .eq("id", id);
     if (error) throw new AppError("DB", error.message);
   }

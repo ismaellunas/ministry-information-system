@@ -127,13 +127,11 @@ export function CreateUserForm({
               />
               Pastor
             </label>
-            {pastor && (
-              <div className="space-y-1">
-                <Label htmlFor="ncmdc_id">NCMDC ID</Label>
-                <Input id="ncmdc_id" name="ncmdc_id" autoComplete="off" placeholder="Optional" />
-                <p className="page-copy">District MIS identifier. Leave blank if this pastor does not have one yet.</p>
-              </div>
-            )}
+            <div className="space-y-1">
+              <Label htmlFor="ncmdc_id">NCMDC ID</Label>
+              <Input id="ncmdc_id" name="ncmdc_id" autoComplete="off" placeholder="Optional" />
+              <p className="page-copy">District MIS identifier. Optional.</p>
+            </div>
           </div>
         )}
         <label className="flex min-h-11 items-center gap-3 text-sm text-gray-700">

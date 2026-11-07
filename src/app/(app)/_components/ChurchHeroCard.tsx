@@ -31,7 +31,7 @@ export function ChurchHeroCard({
           <User className="h-4 w-4 shrink-0" />
           {actor.firstName} {actor.lastName} · {signedInRoleLabel(role, actor.isPastor)}
         </p>
-        {actor.isPastor && actor.ncmdcId && (
+        {actor.ncmdcId && (
           <p className="flex items-center gap-2">
             <span className="h-4 w-4 shrink-0" aria-hidden="true" />
             NCMDC {actor.ncmdcId}

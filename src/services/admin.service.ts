@@ -102,7 +102,7 @@ export class AdminService {
         phoneNumber: input.phoneNumber?.trim() || null,
         mustChangePassword: true,
         isPastor,
-        ncmdcId: isPastor ? input.ncmdcId : null,
+        ncmdcId: input.roles.some((role) => role.role === "CHURCH_REP") ? input.ncmdcId : null,
       });
       for (const role of input.roles) {
         await this.profiles.addRole(userId, role.role, role.churchId, role.ministryId);
@@ -136,16 +136,18 @@ export class AdminService {
     const pastorError = ncmdcIdError(data.ncmdcId);
     if (pastorError) throw new AppError("VALIDATION", pastorError);
     const existing = await this.requireProfile(id);
-    const isPastor = data.isPastor && existing.roles.some((role) => role.role === "CHURCH_REP");
+    const churchRep = existing.roles.some((role) => role.role === "CHURCH_REP");
+    const isPastor = data.isPastor && churchRep;
     if (data.isPastor && !isPastor) {
       throw new AppError("VALIDATION", "A pastor must be a church representative.");
     }
+    const ncmdcId = churchRep ? data.ncmdcId : null;
     await this.profiles.updateOwn(id, {
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
       phoneNumber: data.phoneNumber?.trim() || null,
     });
-    await this.profiles.setPastorMark(id, isPastor, isPastor ? data.ncmdcId : null);
+    await this.profiles.setPastorMark(id, isPastor, ncmdcId);
     await this.audit.record(this.actor.id, "user.update", "profile", id, null);
     return (await this.profiles.findById(id))!;
   }
@@ -181,7 +183,7 @@ export class AdminService {
 
     await this.profiles.removeRole(profileId, roleId);
     const stillRep = remaining.some((role) => role.role === "CHURCH_REP");
-    if (profile.isPastor && removing.role === "CHURCH_REP" && !stillRep) {
+    if (removing.role === "CHURCH_REP" && !stillRep && (profile.isPastor || profile.ncmdcId)) {
       await this.profiles.setPastorMark(profileId, false, null);
     }
     await this.audit.record(this.actor.id, "user.role.remove", "profile", profileId, {

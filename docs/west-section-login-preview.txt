@@ -1,0 +1,109 @@
+West Section master list — proposed logins. Not saved to the database.
+Source: docs/west_section_masterlist.xls
+
+Email is the first word of First Name, then Last Name, lowercase, letters only, at west.info.
+Password is the birthday as YYYYMMDD. An unusable birthday uses the password "password".
+People with no church are listed only in the summary below and are not given a login.
+NCMDC 1253 is Presbytery and a representative of his church.
+Everyone else with a church is a church representative only. Nobody is marked Pastor yet.
+
+NO CHURCH (1)
+- no 5 | NCMDC 226 | Gabriela B. Bahian | birthday 1960-02-28 | No credentials yet
+
+CHURCHES (25)
+- A.G. Awang (1 people)
+    address: AWANG OPOL, MISAMIS ORIENTAL
+- A.G. Baikingon (4 people)
+    address: Zone-3, Baikingon, Cagayan de Oro city
+- A.G. Bulao (2 people)
+    address: Zone 4, Bulao, Iponan, Cagayan de Oro City
+- A.G. Camingawan (2 people)
+    address: ZONE-9 CAMINGAWAN PATA.G., OPOL, MISAMIS ORIENTAL
+- A.G. Dulong (1 people)
+    address: PUROK-8 DULONG LIBERTAD, MISAMIS OR.
+- A.G. Kanitoan (2 people)
+    address: PUROK-1 KANITOAN, INITAO, MISAMIS OR.
+- A.G. Lumbia (1 people)
+    address: Pahiron-lumbia 722
+- A.G. Maputi (1 people)
+    address: Maputi, Naawan, Misamis Oriental
+- A.G. Quezon (1 people)
+    address: Purok 1, Quezon, Gitagum, Misamis Oriental
+- A.G. San Simon (2 people)
+    address: Zone 2, San Simon, Cagayan de Oro City
+- A.G. TAMBO (2 people)
+    address: TAMBO LIBERTAD, MISAMIS ORIENTAL
+- A.G. Tubajon (1 people)
+    address: TUBAJON, LAGUINDINGAN, MIS. OR.
+- Assumption Village Assembly of God Church (1 people)
+    address: Assumption Village, Patag, Cagayan de Oro City
+- Christian Life, Assembly of God Church (3 people)
+    address: Zone 3, Poblacion, Laguindingan Misamis Oriental
+- Great Emmanuel Worship Church Inc (AG Naawan Main) (3 people)
+    address: P5 Poblacion Naawan Misamis Oriental
+- Immanuel Community Church (2 people)
+    address: Tiano Mabini Sts., Cagayan De Oro City
+- Jesus My Resting Haven (1 people)
+    address: Zone 6 Pob. Naawan, Salvador Legaspi Street
+- Kalakala Assembly of God (1 people)
+    address: Sansimon, zone 5 CDO
+- Legacy Church (1 people)
+    address: Naawan, Misamis Oriental
+- Mount of Olive Assemblies of God (1 people)
+    address: Canitoan, Cagayan De Oro City
+- New Hope Assembly (1 people)
+    address: Pagatpat, Cagayan De Oro
+- Pentecostal Assembly Of God Church (1 people)
+    address: Zone 1, Canitoan, Cagayan De Oro City
+- Truth of Life Church - Igpit (1 people)
+    address: Igpit, Opol, Misamis Oriental
+- Truth of Life Church - Sinaloc (1 people)
+    address: Sinaloc, El Salvador City
+- Victory in Jesus Assembly of God Lumbo (1 people)
+    address: Zone 4 Lumbo Alubijid
+
+PASSWORD password (3)
+- no 16 | NCMDC 1254 | Harley Forte | Legacy Church
+- no 17 | NCMDC 1256 | Kish Daniel Espera Garcia | Great Emmanuel Worship Church Inc (AG Naawan Main)
+- no 40 | NCMDC 1274 | Florypis A. Yañez | A.G. Bulao
+
+LOGINS (38)
+no | ncmdc | name | email | password | church | role
+1 | 233 | Lolita Y. Abalde | lolita.abalde@west.info | 19581201 | A.G. Baikingon | church representative
+2 | 218 | Sunshine Mae Turno Ajon | sunshine.ajon@west.info | 19981221 | A.G. San Simon | church representative
+3 | 215 | Brian Tabios Alberto | brian.alberto@west.info | 19890104 | A.G. TAMBO | church representative
+4 | 217 | Sheryl Sagrado Alberto | sheryl.alberto@west.info | 19890419 | A.G. TAMBO | church representative
+6 | 231 | Neil Jhon Magdale Bonggay | neil.bonggay@west.info | 19990918 | Christian Life, Assembly of God Church | church representative
+7 | 219 | Hanz Simon Catapusan | hanz.catapusan@west.info | 20031028 | Kalakala Assembly of God | church representative
+8 | 159 | Rhea May Abalde Daayata | rhea.daayata@west.info | 19810525 | A.G. Bulao | church representative
+9 | 236 | Rodinia B. Dandasan | rodinia.dandasan@west.info | 19670910 | A.G. Awang | church representative
+10 | 221 | Liez'l June Floran Ebajay | liezl.ebajay@west.info | 19880618 | A.G. Baikingon | church representative
+11 | 155 | Charles Dave Jarabe Escalante | charles.escalante@west.info | 19870318 | Immanuel Community Church | church representative
+12 | 156 | Jesslyn Reas Escalante | jesslyn.escalante@west.info | 19830301 | Immanuel Community Church | church representative
+13 | 167 | Ceejay Mortel Espinosa | ceejay.espinosa@west.info | 19980912 | A.G. Lumbia | church representative
+14 | 1251 | Michael Kenn Echem Fernando | michael.fernando@west.info | 19920301 | Pentecostal Assembly Of God Church | church representative
+15 | 1253 | Harry Llauderes Floran | harry.floran@west.info | 19640118 | A.G. Baikingon | Presbytery + church representative
+16 | 1254 | Harley Forte | harley.forte@west.info | password | Legacy Church | church representative
+17 | 1256 | Kish Daniel Espera Garcia | kish.garcia@west.info | password | Great Emmanuel Worship Church Inc (AG Naawan Main) | church representative
+18 | 4871 | Sarah France Edubos Gay | sarah.gay@west.info | 19801201 | Great Emmanuel Worship Church Inc (AG Naawan Main) | church representative
+19 | 1257 | Virgel Enerio Gayla | virgel.gayla@west.info | 19650716 | Mount of Olive Assemblies of God | church representative
+20 | 235 | Mary Ann Ursal Gealon | mary.gealon@west.info | 19810316 | Truth of Life Church - Igpit | church representative
+22 | 224 | Jo Ismael Roxas Lunas | jo.lunas@west.info | 19910516 | Great Emmanuel Worship Church Inc (AG Naawan Main) | church representative
+23 | 160 | Roger Acera Macalong | roger.macalong@west.info | 19610919 | A.G. Maputi | church representative
+24 | 161 | Merlie Magpulong Maquiling | merlie.maquiling@west.info | 19620126 | A.G. Kanitoan | church representative
+25 | 222 | Felix Tactacon Maquiling | felix.maquiling@west.info | 19410812 | A.G. Kanitoan | church representative
+26 | 4866 | Junnie Gabo Obsioma | junnie.obsioma@west.info | 19670624 | A.G. Camingawan | church representative
+27 | 216 | Agnes Cabatuan Obsioma | agnes.obsioma@west.info | 19600929 | A.G. Camingawan | church representative
+28 | 166 | Jan Dale Adrian Cañada Palayen | jan.palayen@west.info | 20011123 | Assumption Village Assembly of God Church | church representative
+29 | 230 | Jade Baculio Ramos | jade.ramos@west.info | 19980904 | Christian Life, Assembly of God Church | church representative
+30 | 227 | Susan A Revil | susan.revil@west.info | 19671110 | A.G. Dulong | church representative
+31 | 164 | Pepito D., Sr Revil | pepito.revil@west.info | 19621026 | A.G. Quezon | church representative
+32 | 4848 | Reymar Salo | reymar.salo@west.info | 19950221 | A.G. Baikingon | church representative
+33 | 229 | Knowell Aput Sanchez | knowell.sanchez@west.info | 19840603 | Jesus My Resting Haven | church representative
+34 | 234 | Don Anecito Somosot Suico | don.suico@west.info | 19750825 | Truth of Life Church - Sinaloc | church representative
+35 | 213 | Rica Balnig Taboclaon | rica.taboclaon@west.info | 19980823 | A.G. San Simon | church representative
+36 | 232 | Jellivy Apdian Tairos | jellivy.tairos@west.info | 19941126 | Christian Life, Assembly of God Church | church representative
+37 | 214 | Rebeca Sabellina Timba | rebeca.timba@west.info | 19610608 | A.G. Tubajon | church representative
+38 | 223 | Marie Cris Ratunil Timba | marie.timba@west.info | 19941004 | Victory in Jesus Assembly of God Lumbo | church representative
+39 | 165 | Jannel A. Tubac | jannel.tubac@west.info | 19900616 | New Hope Assembly | church representative
+40 | 1274 | Florypis A. Yañez | florypis.yanez@west.info | password | A.G. Bulao | church representative

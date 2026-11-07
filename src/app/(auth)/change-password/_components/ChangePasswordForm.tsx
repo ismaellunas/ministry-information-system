@@ -15,19 +15,30 @@ export function ChangePasswordForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState<"change" | "waive" | null>(null);
   const lastSubmit = useRef(0);
+
+  function claimSubmit(): boolean {
+    const now = Date.now();
+    if (pending || now - lastSubmit.current < SAVE_DEBOUNCE_MS) return false;
+    lastSubmit.current = now;
+    setError(null);
+    return true;
+  }
+
+  function goHome() {
+    router.push("/");
+    router.refresh();
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const now = Date.now();
-    if (loading || now - lastSubmit.current < SAVE_DEBOUNCE_MS) return;
-    lastSubmit.current = now;
-    setError(null);
+    if (pending) return;
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirm) { setError("Passwords do not match."); return; }
+    if (!claimSubmit()) return;
 
-    setLoading(true);
+    setPending("change");
     try {
       const supabase = createClient();
       const { error: updateError } = await supabase.auth.updateUser({ password });
@@ -43,12 +54,28 @@ export function ChangePasswordForm() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      goHome();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not set the password.");
     } finally {
-      setLoading(false);
+      setPending(null);
+    }
+  }
+
+  async function waive() {
+    if (!claimSubmit()) return;
+    setPending("waive");
+    try {
+      const flagged = await completePasswordChangeAction();
+      if (!flagged.ok) {
+        setError(flagged.error);
+        return;
+      }
+      goHome();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not keep this password.");
+    } finally {
+      setPending(null);
     }
   }
 
@@ -60,17 +87,20 @@ export function ChangePasswordForm() {
             <Label htmlFor="password">New password</Label>
             <Input id="password" type="password" value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required minLength={8} autoComplete="new-password" disabled={loading} />
+              minLength={8} autoComplete="new-password" disabled={pending !== null} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="confirm">Confirm password</Label>
             <Input id="confirm" type="password" value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              required autoComplete="new-password" disabled={loading} />
+              autoComplete="new-password" disabled={pending !== null} />
           </div>
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Saving…" : "Done"}
+          <Button type="submit" className="w-full" disabled={pending !== null}>
+            {pending === "change" ? "Saving…" : "Change password"}
+          </Button>
+          <Button type="button" variant="outline" className="w-full" disabled={pending !== null} onClick={waive}>
+            {pending === "waive" ? "Saving…" : "Keep this password"}
           </Button>
         </form>
       </CardContent>

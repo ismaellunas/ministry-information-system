@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ChangePasswordForm } from "./_components/ChangePasswordForm";
 
-export const metadata = { title: "Set New Password — West Section MIS" };
+export const metadata = { title: "Your Password — West Section MIS" };
 
 export default async function ChangePasswordPage() {
   const supabase = await createClient();
@@ -39,8 +39,8 @@ export default async function ChangePasswordPage() {
             className="mx-auto mb-4 h-16 w-16 rounded-2xl object-cover shadow-theme-xs"
             priority
           />
-          <h1 className="page-title">Set your password</h1>
-          <p className="page-copy mt-1">You must set a new password before continuing.</p>
+          <h1 className="page-title">Your password</h1>
+          <p className="page-copy mt-1">Keep the password you were given, or set a new one.</p>
         </div>
         <ChangePasswordForm />
       </div>

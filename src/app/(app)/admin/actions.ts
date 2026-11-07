@@ -62,7 +62,7 @@ export async function updateUserAction(formData: FormData): Promise<ActionResult
       lastName: fields.lastName,
       phoneNumber: fields.phoneNumber,
       isPastor,
-      ncmdcId: isPastor ? ncmdcId : null,
+      ncmdcId,
     });
     revalidatePath(`/admin/users/${fields.id}`);
     revalidatePath("/admin/users");

@@ -35,7 +35,7 @@ export function rolesFromUserForm(formData: FormData): RoleAssignment[] {
   return roles;
 }
 
-/** A pastor is a church representative. The NCMDC ID is optional and only kept for a pastor. */
+/** A pastor is a church representative. The NCMDC ID is optional for any church representative. */
 export function pastorMarkFromUserForm(
   formData: FormData,
   roles: RoleAssignment[]
@@ -43,9 +43,8 @@ export function pastorMarkFromUserForm(
   const churchRep = roles.some((role) => role.role === "CHURCH_REP");
   const isPastor = churchRep && formData.get("is_pastor") === "on";
   const raw = String(formData.get("ncmdc_id") ?? "").trim();
-  if (!isPastor) return { isPastor: false, ncmdcId: null };
-  if (!raw) return { isPastor: true, ncmdcId: null };
-  return { isPastor: true, ncmdcId: raw };
+  if (!churchRep) return { isPastor: false, ncmdcId: null };
+  return { isPastor, ncmdcId: raw || null };
 }
 
 export function ncmdcIdError(ncmdcId: string | null): string | null {

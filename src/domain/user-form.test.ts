@@ -52,6 +52,14 @@ describe("pastorMarkFromUserForm", () => {
     expect(ncmdcIdError("NCM-12")).toBeNull();
   });
 
+  it("keeps an NCMDC ID for a church representative who is not the pastor", () => {
+    const roles = rolesFromUserForm(form({ role_church: "on", church_id: churchId }));
+    expect(pastorMarkFromUserForm(form({ ncmdc_id: "1253" }), roles)).toEqual({
+      isPastor: false,
+      ncmdcId: "1253",
+    });
+  });
+
   it("allows a pastor with no NCMDC ID", () => {
     const roles = rolesFromUserForm(form({ role_church: "on", church_id: churchId }));
     expect(pastorMarkFromUserForm(form({ is_pastor: "on" }), roles)).toEqual({

@@ -114,7 +114,7 @@ export function UserManageForms({
               Pastor
             </label>
           )}
-          {churchRep && pastor && (
+          {churchRep && (
             <div className="space-y-1">
               <Label htmlFor="ncmdc_id">NCMDC ID</Label>
               <Input
@@ -124,7 +124,7 @@ export function UserManageForms({
                 placeholder="Optional"
                 defaultValue={profile.ncmdcId ?? ""}
               />
-              <p className="page-copy">District MIS identifier. Leave blank if this pastor does not have one yet.</p>
+              <p className="page-copy">District MIS identifier. Optional.</p>
             </div>
           )}
         </AutosaveForm>
